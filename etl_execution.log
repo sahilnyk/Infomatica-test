@@ -1,0 +1,63 @@
+2026-04-30 13:46:25,119 [INFO] ======================================================================
+2026-04-30 13:46:25,119 [INFO] INFORMATICA POWERCENTER ETL SIMULATION ENGINE
+2026-04-30 13:46:25,119 [INFO] ======================================================================
+2026-04-30 13:46:25,120 [INFO] Batch ID    : AUTO
+2026-04-30 13:46:25,120 [INFO] Source Dir  : C:\Users\ASUS\OneDrive\Documents\XClarity\Informatica-test\source_data
+2026-04-30 13:46:25,120 [INFO] Target Dir  : C:\Users\ASUS\OneDrive\Documents\XClarity\Informatica-test\target_data
+2026-04-30 13:46:25,120 [INFO] Mapping File: C:\Users\ASUS\OneDrive\Documents\XClarity\Informatica-test\mappings\informatica_repository.xml
+2026-04-30 13:46:25,122 [INFO] ----------------------------------------------------------------------
+2026-04-30 13:46:25,123 [INFO] Parsed 50 mappings from repository XML
+2026-04-30 13:46:25,128 [INFO] [1/50] OK    m_customer_load — 20 rows (4.6ms)
+2026-04-30 13:46:25,131 [INFO] [2/50] OK    m_customer_deduplicate — 20 rows (2.7ms)
+2026-04-30 13:46:25,135 [INFO] [3/50] OK    m_customer_validate — 20 rows (3.7ms)
+2026-04-30 13:46:25,138 [INFO] [4/50] OK    m_customer_scd2 — 20 rows (2.7ms)
+2026-04-30 13:46:25,141 [INFO] [5/50] OK    m_customer_address_normalize — 20 rows (2.9ms)
+2026-04-30 13:46:25,149 [INFO] [6/50] OK    m_customer_segment — 20 rows (8.2ms)
+2026-04-30 13:46:25,154 [INFO] [7/50] OK    m_customer_merge — 20 rows (4.6ms)
+2026-04-30 13:46:25,157 [INFO] [8/50] OK    m_customer_privacy_mask — 20 rows (2.9ms)
+2026-04-30 13:46:25,173 [INFO] [9/50] OK    m_customer_lifetime_value — 20 rows (16.0ms)
+2026-04-30 13:46:25,179 [INFO] [10/50] OK    m_customer_churn_flag — 20 rows (6.5ms)
+2026-04-30 13:46:25,182 [INFO] [11/50] OK    m_sales_order_load — 20 rows (2.2ms)
+2026-04-30 13:46:25,185 [INFO] [12/50] OK    m_sales_order_validate — 20 rows (3.5ms)
+2026-04-30 13:46:25,187 [INFO] [13/50] OK    m_sales_line_item_load — 25 rows (2.1ms)
+2026-04-30 13:46:25,190 [INFO] [14/50] OK    m_sales_discount_calc — 25 rows (3.1ms)
+2026-04-30 13:46:25,193 [INFO] [15/50] OK    m_sales_tax_calc — 20 rows (2.9ms)
+2026-04-30 13:46:25,196 [INFO] [16/50] OK    m_sales_commission_calc — 20 rows (2.3ms)
+2026-04-30 13:46:25,198 [INFO] [17/50] OK    m_sales_returns_process — 15 rows (2.3ms)
+2026-04-30 13:46:25,204 [INFO] [18/50] OK    m_sales_revenue_aggregate — 10 rows (6.0ms)
+2026-04-30 13:46:25,206 [INFO] [19/50] OK    m_sales_forecast_load — 20 rows (1.8ms)
+2026-04-30 13:46:25,209 [INFO] [20/50] OK    m_sales_pipeline_status — 20 rows (2.8ms)
+2026-04-30 13:46:25,211 [INFO] [21/50] OK    m_product_catalog_load — 20 rows (2.1ms)
+2026-04-30 13:46:25,214 [INFO] [22/50] OK    m_product_category_hierarchy — 15 rows (2.8ms)
+2026-04-30 13:46:25,217 [INFO] [23/50] OK    m_product_price_history — 20 rows (3.1ms)
+2026-04-30 13:46:25,219 [INFO] [24/50] OK    m_product_inventory_load — 25 rows (2.0ms)
+2026-04-30 13:46:25,222 [INFO] [25/50] OK    m_product_inventory_alert — 4 rows (3.0ms)
+2026-04-30 13:46:25,226 [INFO] [26/50] OK    m_product_supplier_map — 20 rows (3.8ms)
+2026-04-30 13:46:25,230 [INFO] [27/50] OK    m_product_bundle_create — 3 rows (3.7ms)
+2026-04-30 13:46:25,235 [INFO] [28/50] OK    m_product_review_sentiment — 16 rows (5.0ms)
+2026-04-30 13:46:25,242 [INFO] [29/50] OK    m_product_lifecycle_stage — 20 rows (7.1ms)
+2026-04-30 13:46:25,247 [INFO] [30/50] OK    m_product_recommendation — 20 rows (4.7ms)
+2026-04-30 13:46:25,249 [INFO] [31/50] OK    m_finance_gl_load — 25 rows (2.1ms)
+2026-04-30 13:46:25,251 [INFO] [32/50] OK    m_finance_ap_load — 15 rows (2.0ms)
+2026-04-30 13:46:25,253 [INFO] [33/50] OK    m_finance_ar_load — 20 rows (2.1ms)
+2026-04-30 13:46:25,257 [INFO] [34/50] OK    m_finance_journal_validate — 25 rows (3.0ms)
+2026-04-30 13:46:25,262 [INFO] [35/50] OK    m_finance_currency_convert — 25 rows (5.3ms)
+2026-04-30 13:46:25,265 [INFO] [36/50] OK    m_finance_budget_variance — 20 rows (2.8ms)
+2026-04-30 13:46:25,268 [INFO] [37/50] OK    m_finance_expense_categorize — 11 rows (2.7ms)
+2026-04-30 13:46:25,271 [INFO] [38/50] OK    m_finance_revenue_recognize — 7 rows (3.6ms)
+2026-04-30 13:46:25,277 [INFO] [39/50] OK    m_finance_consolidation — 10 rows (5.3ms)
+2026-04-30 13:46:25,280 [INFO] [40/50] OK    m_finance_audit_trail — 25 rows (3.3ms)
+2026-04-30 13:46:25,282 [INFO] [41/50] OK    m_hr_employee_load — 20 rows (2.1ms)
+2026-04-30 13:46:25,285 [INFO] [42/50] OK    m_hr_payroll_calc — 20 rows (3.0ms)
+2026-04-30 13:46:25,288 [INFO] [43/50] OK    m_hr_attendance_load — 25 rows (2.0ms)
+2026-04-30 13:46:25,290 [INFO] [44/50] OK    m_hr_performance_score — 20 rows (2.7ms)
+2026-04-30 13:46:25,300 [INFO] [45/50] OK    m_hr_turnover_analysis — 20 rows (10.2ms)
+2026-04-30 13:46:25,303 [INFO] [46/50] OK    m_ops_shipping_load — 20 rows (2.4ms)
+2026-04-30 13:46:25,307 [INFO] [47/50] OK    m_ops_delivery_tracking — 20 rows (4.2ms)
+2026-04-30 13:46:25,311 [INFO] [48/50] OK    m_ops_warehouse_inventory — 25 rows (3.8ms)
+2026-04-30 13:46:25,314 [INFO] [49/50] OK    m_ops_quality_metrics — 20 rows (2.7ms)
+2026-04-30 13:46:25,317 [INFO] [50/50] OK    m_ops_vendor_scorecard — 10 rows (2.6ms)
+2026-04-30 13:46:25,317 [INFO] ----------------------------------------------------------------------
+2026-04-30 13:46:25,317 [INFO] SUMMARY: 50 succeeded, 0 failed, 0 skipped out of 50
+2026-04-30 13:46:25,317 [INFO] ======================================================================
+2026-04-30 13:46:25,317 [INFO] Summary written to C:\Users\ASUS\OneDrive\Documents\XClarity\Informatica-test\target_data\etl_summary.json

@@ -1,0 +1,16 @@
+category_id,category_name,parent_category_id,level,description,parent_name,full_path,load_date,source_system,batch_id
+CAT001,Electronics,,1,Electronic devices and accessories,ROOT,Electronics,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT002,Clothing,,1,Apparel and fashion items,ROOT,Clothing,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT003,Home,,1,Home goods and furnishings,ROOT,Home,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT004,Audio,CAT001,2,Headphones speakers and audio equipment,Electronics,Electronics > Audio,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT005,Accessories,CAT001,2,Electronic accessories and peripherals,Electronics,Electronics > Accessories,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT006,Wearables,CAT001,2,Smart watches and fitness trackers,Electronics,Electronics > Wearables,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT007,Lighting,CAT001,2,LED and smart lighting products,Electronics,Electronics > Lighting,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT008,Tops,CAT002,2,T-shirts sweaters and upper body clothing,Clothing,Clothing > Tops,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT009,Footwear,CAT002,2,Shoes boots and sandals,Clothing,Clothing > Footwear,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT010,Outerwear,CAT002,2,Jackets coats and outer layers,Clothing,Clothing > Outerwear,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT011,Kitchen,CAT003,2,Kitchen tools and cookware,Home,Home > Kitchen,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT012,Fitness,CAT003,2,Exercise and fitness equipment,Home,Home > Fitness,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT013,Bedding,CAT003,2,Sheets pillows and bed accessories,Home,Home > Bedding,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT014,Appliances,CAT003,2,Small home appliances,Home,Home > Appliances,2026-04-30 13:46:25,informatica_etl,AUTO
+CAT015,Clothing Accessories,CAT002,2,Bags belts and fashion accessories,Clothing,Clothing > Clothing Accessories,2026-04-30 13:46:25,informatica_etl,AUTO

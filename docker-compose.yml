@@ -1,0 +1,26 @@
+services:
+  etl-runner:
+    build: .
+    container_name: informatica-etl-runner
+    environment:
+      - BATCH_ID=BATCH_DOCKER_001
+      - LOG_LEVEL=INFO
+      - SOURCE_DIR=/app/source_data
+      - TARGET_DIR=/app/target_data
+      - MAPPING_FILE=/app/mappings/informatica_repository.xml
+    volumes:
+      - ./source_data:/app/source_data:ro
+      - ./target_data:/app/target_data
+      - ./mappings:/app/mappings:ro
+
+  test-validator:
+    build: .
+    container_name: informatica-test-validator
+    depends_on:
+      etl-runner:
+        condition: service_completed_successfully
+    environment:
+      - TARGET_DIR=/app/target_data
+    volumes:
+      - ./target_data:/app/target_data:ro
+    command: ["python", "/app/scripts/validate_output.py"]

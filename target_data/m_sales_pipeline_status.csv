@@ -1,0 +1,21 @@
+opportunity_id,customer_id,sales_rep_id,stage,amount,probability,expected_close_date,weighted_amount,stage_rank,load_date,source_system,batch_id
+OPP001,C001,SR01,closed_won,25000.0,100,2024-01-30,25000.0,4,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP002,C002,SR02,negotiation,18000.0,70,2024-04-15,12600.0,3,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP003,C003,SR03,proposal,32000.0,50,2024-05-01,16000.0,2,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP004,C004,SR01,qualification,15000.0,25,2024-06-15,3750.0,1,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP005,C005,SR04,closed_won,8500.0,100,2024-02-28,8500.0,4,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP006,C006,SR05,closed_lost,22000.0,0,2024-03-01,0.0,5,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP007,C007,SR06,negotiation,45000.0,65,2024-04-30,29250.0,3,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP008,C009,SR07,proposal,12000.0,45,2024-05-15,5400.0,2,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP009,C010,SR04,closed_won,19500.0,100,2024-03-15,19500.0,4,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP010,C011,SR06,qualification,28000.0,30,2024-06-01,8400.0,1,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP011,C012,SR08,negotiation,55000.0,75,2024-04-20,41250.0,3,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP012,C014,SR09,proposal,9800.0,40,2024-05-30,3920.0,2,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP013,C015,SR05,closed_won,34000.0,100,2024-03-20,34000.0,4,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP014,C016,SR10,qualification,42000.0,20,2024-07-01,8400.0,1,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP015,C017,SR03,negotiation,16500.0,60,2024-04-25,9900.0,3,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP016,C019,SR06,closed_won,38000.0,100,2024-02-15,38000.0,4,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP017,C020,SR02,proposal,21000.0,55,2024-05-10,11550.0,2,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP018,C013,SR02,closed_lost,14000.0,0,2024-02-01,0.0,5,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP019,C018,SR10,qualification,50000.0,15,2024-07-15,7500.0,1,2026-04-30 13:46:25,informatica_etl,AUTO
+OPP020,C001,SR01,negotiation,30000.0,70,2024-04-10,21000.0,3,2026-04-30 13:46:25,informatica_etl,AUTO

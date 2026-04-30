@@ -1,0 +1,7 @@
+{
+  "source_dir": "/app/source_data",
+  "target_dir": "/app/target_data",
+  "mapping_file": "/app/mappings/informatica_repository.xml",
+  "batch_id": "AUTO",
+  "log_level": "INFO"
+}

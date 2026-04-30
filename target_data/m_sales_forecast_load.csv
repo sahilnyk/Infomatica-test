@@ -1,0 +1,21 @@
+forecast_id,region,period,product_category,forecast_amount,confidence_pct,load_date,source_system,batch_id
+SF001,Northeast,2024-Q1,Electronics,450000.0,85,2026-04-30 13:46:25,informatica_etl,AUTO
+SF002,Northeast,2024-Q1,Clothing,280000.0,80,2026-04-30 13:46:25,informatica_etl,AUTO
+SF003,West,2024-Q1,Electronics,520000.0,90,2026-04-30 13:46:25,informatica_etl,AUTO
+SF004,West,2024-Q1,Clothing,310000.0,75,2026-04-30 13:46:25,informatica_etl,AUTO
+SF005,Midwest,2024-Q1,Electronics,320000.0,82,2026-04-30 13:46:25,informatica_etl,AUTO
+SF006,Midwest,2024-Q1,Clothing,190000.0,78,2026-04-30 13:46:25,informatica_etl,AUTO
+SF007,South,2024-Q1,Electronics,410000.0,88,2026-04-30 13:46:25,informatica_etl,AUTO
+SF008,South,2024-Q1,Clothing,250000.0,83,2026-04-30 13:46:25,informatica_etl,AUTO
+SF009,Northeast,2024-Q2,Electronics,480000.0,80,2026-04-30 13:46:25,informatica_etl,AUTO
+SF010,Northeast,2024-Q2,Clothing,295000.0,76,2026-04-30 13:46:25,informatica_etl,AUTO
+SF011,West,2024-Q2,Electronics,550000.0,85,2026-04-30 13:46:25,informatica_etl,AUTO
+SF012,West,2024-Q2,Clothing,330000.0,72,2026-04-30 13:46:25,informatica_etl,AUTO
+SF013,Midwest,2024-Q2,Electronics,340000.0,79,2026-04-30 13:46:25,informatica_etl,AUTO
+SF014,South,2024-Q2,Electronics,430000.0,84,2026-04-30 13:46:25,informatica_etl,AUTO
+SF015,Southeast,2024-Q1,Electronics,380000.0,81,2026-04-30 13:46:25,informatica_etl,AUTO
+SF016,Southeast,2024-Q1,Clothing,220000.0,77,2026-04-30 13:46:25,informatica_etl,AUTO
+SF017,Southeast,2024-Q2,Electronics,400000.0,79,2026-04-30 13:46:25,informatica_etl,AUTO
+SF018,Northeast,2024-Q1,Home,180000.0,70,2026-04-30 13:46:25,informatica_etl,AUTO
+SF019,West,2024-Q1,Home,210000.0,72,2026-04-30 13:46:25,informatica_etl,AUTO
+SF020,South,2024-Q1,Home,160000.0,68,2026-04-30 13:46:25,informatica_etl,AUTO

@@ -1,0 +1,11 @@
+vendor_id,vendor_name,category,contract_start,contract_end,total_spend,on_time_delivery_pct,quality_score
+SUP001,TechVision Electronics,electronics,2023-01-01,2025-12-31,450000.00,96.5,4.5
+SUP002,Global Textiles Inc,textiles,2023-03-15,2025-03-14,280000.00,92.0,4.2
+SUP003,HomeWare Solutions,housewares,2023-02-01,2025-01-31,320000.00,98.0,4.7
+SUP004,ActiveGear Manufacturing,sporting_goods,2023-06-01,2025-05-31,185000.00,88.5,4.0
+SUP005,EcoLiving Products,home_goods,2023-04-15,2025-04-14,120000.00,94.0,4.3
+SUP006,SmartDevice Corp,electronics,2023-05-01,2025-04-30,380000.00,97.0,4.6
+SUP007,Pacific Imports Ltd,general,2023-07-01,2025-06-30,95000.00,85.0,3.9
+SUP008,Nordic Design Co,furniture,2023-09-01,2025-08-31,160000.00,91.5,4.4
+SUP009,Artisan Craft Works,crafts,2023-08-15,2025-08-14,55000.00,93.0,4.1
+SUP010,Precision Parts Inc,components,2023-10-01,2025-09-30,210000.00,99.0,4.8

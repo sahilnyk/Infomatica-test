@@ -1,0 +1,11 @@
+account_code,account_name,total_debits,total_credits,entry_count,net_balance,load_date,source_system,batch_id
+1000,Cash,0.0,40500.0,3,-40500.0,2026-04-30 13:46:25,informatica_etl,AUTO
+1200,Accounts Receivable,947.99,0.0,4,947.99,2026-04-30 13:46:25,informatica_etl,AUTO
+1300,Inventory,0.0,370.0,2,-370.0,2026-04-30 13:46:25,informatica_etl,AUTO
+2100,Salaries Payable,0.0,170000.0,2,-170000.0,2026-04-30 13:46:25,informatica_etl,AUTO
+4000,Revenue,0.0,2008.24,7,-2008.24,2026-04-30 13:46:25,informatica_etl,AUTO
+5000,Cost of Goods Sold,370.0,0.0,2,370.0,2026-04-30 13:46:25,informatica_etl,AUTO
+6100,Salaries Expense,170000.0,0.0,2,170000.0,2026-04-30 13:46:25,informatica_etl,AUTO
+6200,Rent Expense,12000.0,0.0,1,12000.0,2026-04-30 13:46:25,informatica_etl,AUTO
+6300,Utilities Expense,3500.0,0.0,1,3500.0,2026-04-30 13:46:25,informatica_etl,AUTO
+6400,Marketing Expense,25000.0,0.0,1,25000.0,2026-04-30 13:46:25,informatica_etl,AUTO

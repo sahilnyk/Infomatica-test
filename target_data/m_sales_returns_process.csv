@@ -1,0 +1,16 @@
+return_id,order_id,line_item_id,return_date,reason_code,refund_amount,status,processing_date,is_processed,load_date,source_system,batch_id
+RET001,ORD003,LI004,2024-02-28,defective,121.5,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET002,ORD004,LI007,2024-02-15,wrong_item,145.0,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET003,ORD006,LI009,2024-02-20,not_as_described,75.0,processing,2026-04-30,False,2026-04-30 13:46:25,informatica_etl,AUTO
+RET004,ORD009,LI015,2024-03-20,changed_mind,162.0,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET005,ORD001,LI002,2024-02-01,defective,100.0,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET006,ORD008,LI012,2024-03-05,wrong_size,95.0,pending,2026-04-30,False,2026-04-30 13:46:25,informatica_etl,AUTO
+RET007,ORD010,LI017,2024-03-12,not_as_described,137.75,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET008,ORD011,LI019,2024-02-10,changed_mind,95.4,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET009,ORD013,LI023,2024-03-15,defective,95.0,processing,2026-04-30,False,2026-04-30 13:46:25,informatica_etl,AUTO
+RET010,ORD002,LI003,2024-02-05,wrong_item,89.99,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET011,ORD005,LI008,2024-03-01,changed_mind,67.8,pending,2026-04-30,False,2026-04-30 13:46:25,informatica_etl,AUTO
+RET012,ORD007,LI011,2024-02-25,not_as_described,88.0,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET013,ORD014,LI025,2024-02-15,defective,42.99,completed,2026-04-30,True,2026-04-30 13:46:25,informatica_etl,AUTO
+RET014,ORD012,LI020,2024-03-25,wrong_item,405.0,processing,2026-04-30,False,2026-04-30 13:46:25,informatica_etl,AUTO
+RET015,ORD015,LI015,2024-03-28,changed_mind,162.0,pending,2026-04-30,False,2026-04-30 13:46:25,informatica_etl,AUTO

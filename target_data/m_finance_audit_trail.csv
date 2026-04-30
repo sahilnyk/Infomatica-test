@@ -1,0 +1,26 @@
+entry_id,account_code,account_name,entry_date,debit_amount,credit_amount,description,entity_id,currency,audit_hash,audit_timestamp,audit_user,audit_action,load_date,source_system,batch_id
+GL001,4000,Revenue,2024-01-05,0.0,250.0,Sales order ORD001,ENT01,USD,036eac0f0ec97f52,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL002,1200,Accounts Receivable,2024-01-05,250.0,0.0,Sales order ORD001,ENT01,USD,41aa04377e087922,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL003,4000,Revenue,2024-01-12,0.0,89.99,Sales order ORD002,ENT01,USD,c7a5c27284c00283,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL004,1200,Accounts Receivable,2024-01-12,89.99,0.0,Sales order ORD002,ENT01,USD,61cf8168f3a30368,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL005,5000,Cost of Goods Sold,2024-01-15,150.0,0.0,COGS for January batch,ENT01,USD,73574e1884b024ee,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL006,1300,Inventory,2024-01-15,0.0,150.0,COGS for January batch,ENT01,USD,cecd329301840371,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL007,6100,Salaries Expense,2024-01-31,85000.0,0.0,January payroll,ENT01,USD,0f74aee0e2446106,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL008,2100,Salaries Payable,2024-01-31,0.0,85000.0,January payroll,ENT01,USD,a29e34e4c236fd20,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL009,4000,Revenue,2024-02-05,0.0,88.0,Sales order ORD007,ENT01,USD,2c93dd3c74cbc533,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL010,1200,Accounts Receivable,2024-02-05,88.0,0.0,Sales order ORD007,ENT01,USD,30ae8b43d261ecb6,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL011,6200,Rent Expense,2024-02-01,12000.0,0.0,February office rent,ENT01,USD,7441fafdd07a07d0,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL012,1000,Cash,2024-02-01,0.0,12000.0,February office rent,ENT01,USD,28a774da850ba625,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL013,4000,Revenue,2024-02-14,0.0,67.8,Sales order ORD005,ENT02,USD,c3471bb20e42fe6e,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL014,4000,Revenue,2024-01-25,0.0,312.45,Sales order ORD006,ENT01,EUR,40d731b1fd762d7e,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL015,6300,Utilities Expense,2024-02-15,3500.0,0.0,February utilities,ENT01,USD,31d313f64cbfb1d3,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL016,1000,Cash,2024-02-15,0.0,3500.0,February utilities,ENT01,USD,8b7d49195b8bb11b,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL017,4000,Revenue,2024-03-10,0.0,520.0,Sales order ORD009,ENT02,USD,6d105d5b3fb4b192,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL018,1200,Accounts Receivable,2024-03-10,520.0,0.0,Sales order ORD009,ENT02,USD,622aa0005058eaed,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL019,6100,Salaries Expense,2024-02-29,85000.0,0.0,February payroll,ENT01,USD,158e9eb2b8dd4241,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL020,2100,Salaries Payable,2024-02-29,0.0,85000.0,February payroll,ENT01,USD,ef6f272e3f4880ee,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL021,4000,Revenue,2024-03-05,0.0,680.0,Sales order ORD012,ENT01,GBP,2115eb63a9e780b7,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL022,5000,Cost of Goods Sold,2024-02-28,220.0,0.0,COGS for February batch,ENT01,USD,6f939fe86b22c03d,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL023,1300,Inventory,2024-02-28,0.0,220.0,COGS for February batch,ENT01,USD,98e026d52ec03849,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL024,6400,Marketing Expense,2024-03-01,25000.0,0.0,Q1 marketing campaign,ENT02,USD,882ea28f054f6bd3,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO
+GL025,1000,Cash,2024-03-01,0.0,25000.0,Q1 marketing campaign,ENT02,USD,b02a4f5d4b1876ea,2026-04-30 13:46:25,etl_system,load,2026-04-30 13:46:25,informatica_etl,AUTO

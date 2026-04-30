@@ -1,0 +1,21 @@
+review_id,employee_id,review_period,goal_score,competency_score,manager_rating,self_rating,weighted_score,performance_tier,load_date,source_system,batch_id
+PR001,EMP001,2024-H1,4.5,4.8,4.6,4.3,4.62,exceptional,2026-04-30 13:46:25,informatica_etl,AUTO
+PR002,EMP002,2024-H1,4.2,4.5,4.3,4.0,4.32,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR003,EMP003,2024-H1,3.8,3.9,3.8,4.1,3.83,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR004,EMP004,2024-H1,4.7,4.6,4.7,4.5,4.67,exceptional,2026-04-30 13:46:25,informatica_etl,AUTO
+PR005,EMP005,2024-H1,4.0,4.2,4.1,3.9,4.09,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR006,EMP006,2024-H1,3.5,3.6,3.5,3.8,3.53,meets,2026-04-30 13:46:25,informatica_etl,AUTO
+PR007,EMP007,2024-H1,4.3,4.4,4.3,4.2,4.33,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR008,EMP008,2024-H1,3.9,4.0,3.9,4.0,3.93,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR009,EMP009,2024-H1,4.8,4.9,4.8,4.6,4.83,exceptional,2026-04-30 13:46:25,informatica_etl,AUTO
+PR010,EMP010,2024-H1,4.1,4.0,4.0,4.2,4.04,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR011,EMP011,2024-H1,4.4,4.3,4.4,4.1,4.37,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR012,EMP012,2024-H1,3.7,3.8,3.7,3.9,3.73,meets,2026-04-30 13:46:25,informatica_etl,AUTO
+PR013,EMP013,2024-H1,4.6,4.5,4.6,4.4,4.57,exceptional,2026-04-30 13:46:25,informatica_etl,AUTO
+PR014,EMP014,2024-H1,4.0,4.1,4.0,3.8,4.03,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR015,EMP015,2024-H1,3.6,3.5,3.5,3.7,3.54,meets,2026-04-30 13:46:25,informatica_etl,AUTO
+PR016,EMP016,2024-H1,3.9,4.0,3.9,4.1,3.93,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR017,EMP017,2024-H1,3.4,3.3,3.3,3.6,3.34,meets,2026-04-30 13:46:25,informatica_etl,AUTO
+PR018,EMP018,2024-H1,4.0,4.1,4.0,3.9,4.03,strong,2026-04-30 13:46:25,informatica_etl,AUTO
+PR019,EMP019,2024-H1,2.5,2.8,2.6,3.2,2.62,below,2026-04-30 13:46:25,informatica_etl,AUTO
+PR020,EMP020,2024-H1,3.8,3.7,3.7,3.9,3.74,meets,2026-04-30 13:46:25,informatica_etl,AUTO

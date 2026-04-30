@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XClarity Informatica ETL Flow Visualization</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;overflow-x:hidden}
+.header{background:linear-gradient(135deg,#1e293b 0%,#0f172a 100%);border-bottom:1px solid #334155;padding:32px 40px;text-align:center}
+.header h1{font-size:28px;font-weight:700;background:linear-gradient(135deg,#60a5fa,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+.header p{color:#94a3b8;font-size:14px}
+.stats-bar{display:flex;justify-content:center;gap:32px;padding:20px;background:#1e293b;border-bottom:1px solid #334155}
+.stat{text-align:center}
+.stat-val{font-size:28px;font-weight:700;color:#60a5fa}
+.stat-label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.arch-section{padding:40px;max-width:1400px;margin:0 auto}
+.arch-title{font-size:20px;font-weight:600;color:#f1f5f9;margin-bottom:24px;display:flex;align-items:center;gap:10px}
+.arch-title span{font-size:22px}
+.arch-grid{display:grid;grid-template-columns:200px 60px 1fr 60px 200px;align-items:center;gap:0;margin-bottom:48px}
+.arch-col{display:flex;flex-direction:column;gap:8px}
+.arch-box{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:12px 16px;font-size:12px;text-align:center;transition:all .2s}
+.arch-box:hover{border-color:#60a5fa;transform:translateY(-2px);box-shadow:0 4px 12px rgba(96,165,250,.15)}
+.arch-box .label{font-weight:600;color:#f1f5f9;margin-bottom:2px}
+.arch-box .sub{color:#64748b;font-size:10px}
+.arch-arrow{display:flex;align-items:center;justify-content:center;color:#475569}
+.arch-arrow svg{width:40px;height:24px}
+.arch-transform-col{display:flex;flex-direction:column;gap:6px}
+.xform-chip{background:linear-gradient(135deg,#312e81,#4c1d95);border:1px solid #6366f1;border-radius:8px;padding:8px 12px;font-size:11px;color:#c7d2fe;text-align:center}
+.domain-tabs{display:flex;gap:4px;padding:0 40px;flex-wrap:wrap}
+.domain-tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:13px;font-weight:500;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-bottom:none;transition:all .2s}
+.domain-tab:hover{color:#e2e8f0;background:#253044}
+.domain-tab.active{color:#fff;border-color:#6366f1}
+.domain-tab.active.customer{background:linear-gradient(135deg,#164e63,#155e75)}
+.domain-tab.active.sales{background:linear-gradient(135deg,#713f12,#854d0e)}
+.domain-tab.active.product{background:linear-gradient(135deg,#14532d,#166534)}
+.domain-tab.active.finance{background:linear-gradient(135deg,#4c1d95,#5b21b6)}
+.domain-tab.active.hrops{background:linear-gradient(135deg,#7f1d1d,#991b1b)}
+.domain-content{background:#1e293b;border:1px solid #334155;border-radius:0 12px 12px 12px;margin:0 40px 40px;padding:32px}
+.flow-card{margin-bottom:40px;background:#0f172a;border-radius:12px;border:1px solid #334155;overflow:hidden}
+.flow-header{padding:16px 24px;display:flex;align-items:center;justify-content:between;gap:12px;cursor:pointer;transition:background .2s}
+.flow-header:hover{background:#1a2744}
+.flow-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.flow-icon.src{background:linear-gradient(135deg,#0ea5e9,#0284c7)}
+.flow-icon.xform{background:linear-gradient(135deg,#8b5cf6,#7c3aed)}
+.flow-icon.tgt{background:linear-gradient(135deg,#22c55e,#16a34a)}
+.flow-title{flex:1}
+.flow-title h3{font-size:15px;font-weight:600;color:#f1f5f9}
+.flow-title p{font-size:12px;color:#64748b;margin-top:2px}
+.flow-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-load{background:#0e4429;color:#3fb950}
+.badge-transform{background:#2d1b69;color:#a78bfa}
+.badge-validate{background:#422006;color:#fb923c}
+.badge-aggregate{background:#042f2e;color:#2dd4bf}
+.badge-enrich{background:#1e1b4b;color:#818cf8}
+.flow-body{padding:0 24px 24px;display:none}
+.flow-body.open{display:block}
+.flow-pipeline{display:flex;align-items:flex-start;gap:0;margin-top:16px;overflow-x:auto;padding-bottom:8px}
+.pipe-stage{flex:1;min-width:260px}
+.pipe-label{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.pipe-label.source{color:#38bdf8}
+.pipe-label.transform{color:#a78bfa}
+.pipe-label.target{color:#4ade80}
+.pipe-dot{width:10px;height:10px;border-radius:50%}
+.pipe-dot.source{background:#38bdf8}
+.pipe-dot.transform{background:#a78bfa}
+.pipe-dot.target{background:#4ade80}
+.pipe-arrow{display:flex;align-items:center;justify-content:center;padding:0 4px;min-width:48px;margin-top:40px}
+.pipe-arrow svg{color:#475569}
+.xform-box{background:#1e1b4b;border:1px solid #4338ca;border-radius:10px;padding:16px;min-width:200px}
+.xform-box h4{font-size:13px;color:#c7d2fe;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.xform-box h4 span{font-size:15px}
+.xform-rule{font-size:11px;color:#a5b4fc;padding:4px 8px;background:#312e81;border-radius:4px;margin-bottom:4px;font-family:'Cascadia Code','Fira Code',monospace}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#1e293b;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:2px solid #334155;white-space:nowrap;font-size:10px}
+td{padding:7px 10px;border-bottom:1px solid #1e293b;color:#cbd5e1;white-space:nowrap}
+tr:hover td{background:#1a2332}
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid #334155}
+.highlight-col{background:#1e1b4b !important;color:#a5b4fc !important;font-weight:600}
+.added-col{background:#052e16 !important;color:#4ade80 !important;font-weight:600}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.tag-pass{background:#052e16;color:#4ade80}
+.tag-fail{background:#450a0a;color:#fca5a5}
+.tag-high{background:#450a0a;color:#fca5a5}
+.tag-medium{background:#422006;color:#fdba74}
+.tag-low{background:#052e16;color:#86efac}
+.tag-platinum{background:#312e81;color:#c4b5fd}
+.tag-gold{background:#422006;color:#fbbf24}
+.tag-silver{background:#1e293b;color:#94a3b8}
+.tag-preferred{background:#052e16;color:#4ade80}
+.tag-approved{background:#172554;color:#60a5fa}
+.tag-a{background:#052e16;color:#4ade80}
+.tag-b{background:#172554;color:#60a5fa}
+.summary-section{padding:0 40px 40px;max-width:1400px;margin:0 auto}
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.summary-card{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:20px;text-align:center}
+.summary-card h4{font-size:13px;color:#94a3b8;margin-bottom:8px}
+.summary-card .big{font-size:36px;font-weight:700}
+.big.blue{color:#60a5fa}.big.green{color:#4ade80}.big.purple{color:#a78bfa}.big.amber{color:#fbbf24}.big.rose{color:#fb7185}
+.footer{text-align:center;padding:24px;color:#475569;font-size:12px;border-top:1px solid #1e293b}
+.chevron{transition:transform .2s;color:#64748b}
+.chevron.open{transform:rotate(90deg)}
+@media(max-width:900px){.flow-pipeline{flex-direction:column}.pipe-arrow{transform:rotate(90deg);margin:8px auto}.arch-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>XClarity Informatica PowerCenter ETL Flow</h1>
+  <p>Interactive visualization of 50 mapping transformations across 5 business domains with real sample data</p>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val">50</div><div class="stat-label">Mappings</div></div>
+  <div class="stat"><div class="stat-val">27</div><div class="stat-label">Source CSVs</div></div>
+  <div class="stat"><div class="stat-val">5</div><div class="stat-label">Domains</div></div>
+  <div class="stat"><div class="stat-val">50</div><div class="stat-label">Target Outputs</div></div>
+  <div class="stat"><div class="stat-val">898</div><div class="stat-label">Total Rows Processed</div></div>
+</div>
+
+<!-- Architecture Overview -->
+<div class="arch-section">
+  <div class="arch-title"><span>&#x1f3d7;</span> High-Level Architecture</div>
+  <div class="arch-grid">
+    <div class="arch-col">
+      <div class="arch-box"><div class="label">&#128196; customers.csv</div><div class="sub">20 rows | 13 cols</div></div>
+      <div class="arch-box"><div class="label">&#128196; sales_orders.csv</div><div class="sub">20 rows | 9 cols</div></div>
+      <div class="arch-box"><div class="label">&#128196; products.csv</div><div class="sub">20 rows | 9 cols</div></div>
+      <div class="arch-box"><div class="label">&#128196; general_ledger.csv</div><div class="sub">25 rows | 9 cols</div></div>
+      <div class="arch-box"><div class="label">&#128196; employees.csv</div><div class="sub">20 rows | 10 cols</div></div>
+      <div class="arch-box"><div class="label">&#128196; +22 more CSVs</div><div class="sub">27 total source files</div></div>
+    </div>
+    <div class="arch-arrow"><svg viewBox="0 0 40 24"><path d="M4 12h28M28 6l8 6-8 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="arch-transform-col">
+      <div class="xform-chip">&#9889; Source Qualifier &rarr; Expression &rarr; Filter &rarr; Aggregator &rarr; Lookup &rarr; Router &rarr; Joiner &rarr; Sorter</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+        <div class="xform-chip">Customer<br><b>10 maps</b></div>
+        <div class="xform-chip">Sales<br><b>10 maps</b></div>
+        <div class="xform-chip">Product<br><b>10 maps</b></div>
+        <div class="xform-chip">Finance<br><b>10 maps</b></div>
+        <div class="xform-chip">HR/Ops<br><b>10 maps</b></div>
+      </div>
+      <div class="xform-chip" style="text-align:center;background:linear-gradient(135deg,#1e1b4b,#312e81)">
+        <b>Informatica PowerCenter Repository</b> &mdash; informatica_repository.xml (POWERMART 8.6.1)
+      </div>
+    </div>
+    <div class="arch-arrow"><svg viewBox="0 0 40 24"><path d="M4 12h28M28 6l8 6-8 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="arch-col">
+      <div class="arch-box" style="border-color:#22c55e"><div class="label" style="color:#4ade80">&#9989; target_data/</div><div class="sub">50 output CSVs</div></div>
+      <div class="arch-box" style="border-color:#22c55e"><div class="label" style="color:#4ade80">&#128202; etl_summary.json</div><div class="sub">Execution report</div></div>
+      <div class="arch-box" style="border-color:#22c55e"><div class="label" style="color:#4ade80">&#128220; etl_execution.log</div><div class="sub">Run log</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Domain Tabs -->
+<div class="domain-tabs">
+  <div class="domain-tab active customer" onclick="switchDomain('customer',this)">&#128100; Customer (10)</div>
+  <div class="domain-tab sales" onclick="switchDomain('sales',this)">&#128176; Sales (10)</div>
+  <div class="domain-tab product" onclick="switchDomain('product',this)">&#128230; Product (10)</div>
+  <div class="domain-tab finance" onclick="switchDomain('finance',this)">&#128178; Finance (10)</div>
+  <div class="domain-tab hrops" onclick="switchDomain('hrops',this)">&#128101; HR &amp; Ops (10)</div>
+</div>
+
+<!-- ===================== CUSTOMER DOMAIN ===================== -->
+<div class="domain-content" id="domain-customer">
+
+  <!-- Flow 1: Customer Load -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon src">&#128196;</div>
+      <div class="flow-title"><h3>m_customer_load</h3><p>Load raw customer data from CSV to staging with metadata enrichment</p></div>
+      <span class="flow-badge badge-load">LOAD</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: customers.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>customer_id</th><th>first_name</th><th>last_name</th><th>email</th><th>city</th><th>status</th></tr>
+            <tr><td>C001</td><td>James</td><td>Mitchell</td><td>james.mitchell@email.com</td><td>New York</td><td>active</td></tr>
+            <tr><td>C002</td><td>Sarah</td><td>Johnson</td><td>sarah.j@email.com</td><td>Los Angeles</td><td>active</td></tr>
+            <tr><td>C003</td><td>Robert</td><td>Williams</td><td>rwilliams@email.com</td><td>Chicago</td><td>active</td></tr>
+            <tr><td>C004</td><td>Emily</td><td>Brown</td><td>emily.brown@email.com</td><td>Houston</td><td>inactive</td></tr>
+            <tr><td>C005</td><td>Michael</td><td>Davis</td><td>mdavis@email.com</td><td>Phoenix</td><td>active</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:180px;max-width:220px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#9889;</span> SQ + EXP_ADD_METADATA</h4>
+            <div class="xform-rule">+ load_date = SYSDATE</div>
+            <div class="xform-rule">+ source_system = 'informatica_etl'</div>
+            <div class="xform-rule">+ batch_id = $BATCH_ID</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_customer_load.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>customer_id</th><th>first_name</th><th>last_name</th><th>email</th><th>city</th><th>status</th><th class="added-col">load_date</th><th class="added-col">source_system</th><th class="added-col">batch_id</th></tr>
+            <tr><td>C001</td><td>James</td><td>Mitchell</td><td>james.mitchell@email.com</td><td>New York</td><td>active</td><td class="added-col">2026-04-30</td><td class="added-col">informatica_etl</td><td class="added-col">AUTO</td></tr>
+            <tr><td>C002</td><td>Sarah</td><td>Johnson</td><td>sarah.j@email.com</td><td>Los Angeles</td><td>active</td><td class="added-col">2026-04-30</td><td class="added-col">informatica_etl</td><td class="added-col">AUTO</td></tr>
+            <tr><td>C003</td><td>Robert</td><td>Williams</td><td>rwilliams@email.com</td><td>Chicago</td><td>active</td><td class="added-col">2026-04-30</td><td class="added-col">informatica_etl</td><td class="added-col">AUTO</td></tr>
+            <tr><td>C004</td><td>Emily</td><td>Brown</td><td>emily.brown@email.com</td><td>Houston</td><td>inactive</td><td class="added-col">2026-04-30</td><td class="added-col">informatica_etl</td><td class="added-col">AUTO</td></tr>
+            <tr><td>C005</td><td>Michael</td><td>Davis</td><td>mdavis@email.com</td><td>Phoenix</td><td>active</td><td class="added-col">2026-04-30</td><td class="added-col">informatica_etl</td><td class="added-col">AUTO</td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flow 2: Customer Segment -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon xform">&#127919;</div>
+      <div class="flow-title"><h3>m_customer_segment</h3><p>Segment customers by purchase behavior into tiers (Platinum/Gold/Silver/Bronze)</p></div>
+      <span class="flow-badge badge-transform">TRANSFORM</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: customer_transactions.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>transaction_id</th><th>customer_id</th><th>date</th><th>amount</th><th>type</th></tr>
+            <tr><td>T001</td><td>C001</td><td>2024-01-05</td><td>$250.00</td><td>purchase</td></tr>
+            <tr><td>T002</td><td>C001</td><td>2024-02-10</td><td>$125.50</td><td>purchase</td></tr>
+            <tr><td>T003</td><td>C002</td><td>2024-01-12</td><td>$89.99</td><td>purchase</td></tr>
+            <tr><td>T004</td><td>C002</td><td>2024-03-15</td><td>$340.00</td><td>purchase</td></tr>
+            <tr><td>T005</td><td>C003</td><td>2024-01-20</td><td>$175.25</td><td>purchase</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#128202;</span> AGG + EXP_SEGMENT</h4>
+            <div class="xform-rule">GROUP BY customer_id</div>
+            <div class="xform-rule">SUM(amount) &rarr; total_spend</div>
+            <div class="xform-rule">COUNT(*) &rarr; order_count</div>
+            <div class="xform-rule">&ge;$400 = platinum</div>
+            <div class="xform-rule">&ge;$200 = gold</div>
+            <div class="xform-rule">&ge;$100 = silver</div>
+            <div class="xform-rule">&lt;$100 = bronze</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_customer_segment.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>customer_id</th><th>first_name</th><th>last_name</th><th class="added-col">total_spend</th><th class="added-col">order_count</th><th class="added-col">segment</th></tr>
+            <tr><td>C001</td><td>James</td><td>Mitchell</td><td class="added-col">$375.50</td><td class="added-col">2</td><td class="added-col"><span class="tag tag-gold">gold</span></td></tr>
+            <tr><td>C002</td><td>Sarah</td><td>Johnson</td><td class="added-col">$429.99</td><td class="added-col">2</td><td class="added-col"><span class="tag tag-platinum">platinum</span></td></tr>
+            <tr><td>C003</td><td>Robert</td><td>Williams</td><td class="added-col">$175.25</td><td class="added-col">1</td><td class="added-col"><span class="tag tag-silver">silver</span></td></tr>
+            <tr><td>C004</td><td>Emily</td><td>Brown</td><td class="added-col">$430.00</td><td class="added-col">1</td><td class="added-col"><span class="tag tag-platinum">platinum</span></td></tr>
+            <tr><td>C005</td><td>Michael</td><td>Davis</td><td class="added-col">$267.79</td><td class="added-col">2</td><td class="added-col"><span class="tag tag-gold">gold</span></td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flow 3: Privacy Mask -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon xform">&#128274;</div>
+      <div class="flow-title"><h3>m_customer_privacy_mask</h3><p>Mask PII fields (name, email, phone) for GDPR compliance</p></div>
+      <span class="flow-badge badge-enrich">GDPR</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: customers.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>customer_id</th><th>first_name</th><th>last_name</th><th>email</th><th>phone</th></tr>
+            <tr><td>C001</td><td>James</td><td>Mitchell</td><td>james.mitchell@email.com</td><td>+1-555-0101</td></tr>
+            <tr><td>C002</td><td>Sarah</td><td>Johnson</td><td>sarah.j@email.com</td><td>+1-555-0102</td></tr>
+            <tr><td>C003</td><td>Robert</td><td>Williams</td><td>rwilliams@email.com</td><td>+1-555-0103</td></tr>
+            <tr><td>C004</td><td>Emily</td><td>Brown</td><td>emily.brown@email.com</td><td>+1-555-0104</td></tr>
+            <tr><td>C005</td><td>Michael</td><td>Davis</td><td>mdavis@email.com</td><td>+1-555-0105</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:180px;max-width:220px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#128274;</span> EXP_MASK_PII</h4>
+            <div class="xform-rule">name &rarr; Ja***es</div>
+            <div class="xform-rule">email &rarr; j****@domain</div>
+            <div class="xform-rule">phone &rarr; +1*****01</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_customer_privacy_mask.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>customer_id</th><th class="highlight-col">first_name</th><th class="highlight-col">last_name</th><th class="highlight-col">email</th><th class="highlight-col">phone</th></tr>
+            <tr><td>C001</td><td class="highlight-col">Ja*es</td><td class="highlight-col">Mi****ll</td><td class="highlight-col">j*************@email.com</td><td class="highlight-col">+1*******01</td></tr>
+            <tr><td>C002</td><td class="highlight-col">Sa*ah</td><td class="highlight-col">Jo***on</td><td class="highlight-col">s******@email.com</td><td class="highlight-col">+1*******02</td></tr>
+            <tr><td>C003</td><td class="highlight-col">Ro**rt</td><td class="highlight-col">Wi****ms</td><td class="highlight-col">r********@email.com</td><td class="highlight-col">+1*******03</td></tr>
+            <tr><td>C004</td><td class="highlight-col">Em*ly</td><td class="highlight-col">Br*wn</td><td class="highlight-col">e**********@email.com</td><td class="highlight-col">+1*******04</td></tr>
+            <tr><td>C005</td><td class="highlight-col">Mi***el</td><td class="highlight-col">Da*is</td><td class="highlight-col">m*****@email.com</td><td class="highlight-col">+1*******05</td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== SALES DOMAIN ===================== -->
+<div class="domain-content" id="domain-sales" style="display:none">
+
+  <!-- Sales Tax Calc -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon xform">&#128176;</div>
+      <div class="flow-title"><h3>m_sales_tax_calc</h3><p>Calculate regional tax on order amounts (Northeast 8%, West 7.25%, Midwest 6.5%, South 7%)</p></div>
+      <span class="flow-badge badge-transform">CALC</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: sales_orders.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>order_id</th><th>customer_id</th><th>total_amount</th><th>region</th><th>channel</th></tr>
+            <tr><td>ORD001</td><td>C001</td><td>$250.00</td><td>Northeast</td><td>online</td></tr>
+            <tr><td>ORD002</td><td>C002</td><td>$89.99</td><td>West</td><td>online</td></tr>
+            <tr><td>ORD003</td><td>C003</td><td>$175.25</td><td>Midwest</td><td>store</td></tr>
+            <tr><td>ORD004</td><td>C004</td><td>$430.00</td><td>South</td><td>online</td></tr>
+            <tr><td>ORD005</td><td>C005</td><td>$67.80</td><td>West</td><td>store</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#128178;</span> EXP_TAX</h4>
+            <div class="xform-rule">Northeast: amt * 0.08</div>
+            <div class="xform-rule">West: amt * 0.0725</div>
+            <div class="xform-rule">Midwest: amt * 0.065</div>
+            <div class="xform-rule">South: amt * 0.07</div>
+            <div class="xform-rule">total_with_tax = amt + tax</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_sales_tax_calc.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>order_id</th><th>total_amount</th><th>region</th><th class="added-col">tax_amount</th><th class="added-col">total_with_tax</th></tr>
+            <tr><td>ORD001</td><td>$250.00</td><td>Northeast</td><td class="added-col">$20.00</td><td class="added-col">$270.00</td></tr>
+            <tr><td>ORD002</td><td>$89.99</td><td>West</td><td class="added-col">$6.52</td><td class="added-col">$96.51</td></tr>
+            <tr><td>ORD003</td><td>$175.25</td><td>Midwest</td><td class="added-col">$11.39</td><td class="added-col">$186.64</td></tr>
+            <tr><td>ORD004</td><td>$430.00</td><td>South</td><td class="added-col">$30.10</td><td class="added-col">$460.10</td></tr>
+            <tr><td>ORD005</td><td>$67.80</td><td>West</td><td class="added-col">$4.92</td><td class="added-col">$72.72</td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sales Discount Calc -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon xform">&#127991;</div>
+      <div class="flow-title"><h3>m_sales_discount_calc</h3><p>Calculate gross, discount, and net amounts per line item</p></div>
+      <span class="flow-badge badge-transform">CALC</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: sales_line_items.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>line_item_id</th><th>order_id</th><th>product_id</th><th>qty</th><th>unit_price</th><th>discount_%</th></tr>
+            <tr><td>LI001</td><td>ORD001</td><td>P001</td><td>2</td><td>$75.00</td><td>0%</td></tr>
+            <tr><td>LI002</td><td>ORD001</td><td>P005</td><td>1</td><td>$100.00</td><td>0%</td></tr>
+            <tr><td>LI003</td><td>ORD002</td><td>P003</td><td>1</td><td>$89.99</td><td>0%</td></tr>
+            <tr><td>LI004</td><td>ORD003</td><td>P002</td><td>3</td><td>$45.00</td><td>10%</td></tr>
+            <tr><td>LI005</td><td>ORD003</td><td>P007</td><td>1</td><td>$53.75</td><td>0%</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#128270;</span> EXP_DISCOUNT</h4>
+            <div class="xform-rule">gross = qty * price</div>
+            <div class="xform-rule">discount = gross * pct/100</div>
+            <div class="xform-rule">net = gross - discount</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_sales_discount_calc.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>line_item_id</th><th>product_id</th><th>qty</th><th class="added-col">gross_amount</th><th class="added-col">discount_amt</th><th class="added-col">net_amount</th></tr>
+            <tr><td>LI001</td><td>P001</td><td>2</td><td class="added-col">$150.00</td><td class="added-col">$0.00</td><td class="added-col">$150.00</td></tr>
+            <tr><td>LI002</td><td>P005</td><td>1</td><td class="added-col">$100.00</td><td class="added-col">$0.00</td><td class="added-col">$100.00</td></tr>
+            <tr><td>LI003</td><td>P003</td><td>1</td><td class="added-col">$89.99</td><td class="added-col">$0.00</td><td class="added-col">$89.99</td></tr>
+            <tr><td>LI004</td><td>P002</td><td>3</td><td class="added-col">$135.00</td><td class="added-col" style="color:#fbbf24 !important">$13.50</td><td class="added-col">$121.50</td></tr>
+            <tr><td>LI005</td><td>P007</td><td>1</td><td class="added-col">$53.75</td><td class="added-col">$0.00</td><td class="added-col">$53.75</td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue Aggregate -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon tgt">&#128202;</div>
+      <div class="flow-title"><h3>m_sales_revenue_aggregate</h3><p>Aggregate total revenue, order count, and average order value by region and month</p></div>
+      <span class="flow-badge badge-aggregate">AGGREGATE</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: sales_orders.csv (20 rows)</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>order_id</th><th>order_date</th><th>total_amount</th><th>region</th></tr>
+            <tr><td>ORD001</td><td>2024-01-05</td><td>$250.00</td><td>Northeast</td></tr>
+            <tr><td>ORD002</td><td>2024-01-12</td><td>$89.99</td><td>West</td></tr>
+            <tr><td>ORD003</td><td>2024-01-20</td><td>$175.25</td><td>Midwest</td></tr>
+            <tr><td>ORD004</td><td>2024-01-08</td><td>$430.00</td><td>South</td></tr>
+            <tr><td colspan="4" style="text-align:center;color:#64748b">... 16 more rows ...</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#128202;</span> AGG_REVENUE</h4>
+            <div class="xform-rule">GROUP BY region, period</div>
+            <div class="xform-rule">SUM(total_amount)</div>
+            <div class="xform-rule">COUNT(order_id)</div>
+            <div class="xform-rule">AVG(total_amount)</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_sales_revenue_aggregate.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th class="added-col">region</th><th class="added-col">period</th><th class="added-col">total_revenue</th><th class="added-col">order_count</th><th class="added-col">avg_order_value</th></tr>
+            <tr><td class="added-col">Midwest</td><td class="added-col">2024-01</td><td class="added-col">$583.24</td><td class="added-col">3</td><td class="added-col">$194.41</td></tr>
+            <tr><td class="added-col">Northeast</td><td class="added-col">2024-01</td><td class="added-col">$562.45</td><td class="added-col">2</td><td class="added-col">$281.23</td></tr>
+            <tr><td class="added-col">South</td><td class="added-col">2024-01</td><td class="added-col">$525.40</td><td class="added-col">2</td><td class="added-col">$262.70</td></tr>
+            <tr><td class="added-col">South</td><td class="added-col">2024-02</td><td class="added-col">$533.60</td><td class="added-col">2</td><td class="added-col">$266.80</td></tr>
+            <tr><td class="added-col">Northeast</td><td class="added-col">2024-03</td><td class="added-col">$290.00</td><td class="added-col">1</td><td class="added-col">$290.00</td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== PRODUCT DOMAIN ===================== -->
+<div class="domain-content" id="domain-product" style="display:none">
+
+  <!-- Product Inventory Alert -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon xform">&#9888;</div>
+      <div class="flow-title"><h3>m_product_inventory_alert</h3><p>Flag products below reorder level as low/critical stock, filter only items needing reorder</p></div>
+      <span class="flow-badge badge-validate">FILTER</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: product_inventory.csv (25 rows)</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>inv_id</th><th>product_id</th><th>warehouse</th><th>qty_on_hand</th><th>reorder_level</th></tr>
+            <tr><td>INV001</td><td>P001</td><td>WH01</td><td>250</td><td>50</td></tr>
+            <tr><td>INV014</td><td>P010</td><td>WH01</td><td style="color:#fca5a5">15</td><td>25</td></tr>
+            <tr><td>INV015</td><td>P010</td><td>WH02</td><td style="color:#fca5a5">8</td><td>25</td></tr>
+            <tr><td>INV017</td><td>P012</td><td>WH01</td><td style="color:#fca5a5">5</td><td>10</td></tr>
+            <tr><td>INV023</td><td>P018</td><td>WH01</td><td style="color:#fca5a5">10</td><td>30</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#9888;</span> EXP + FIL</h4>
+            <div class="xform-rule">qty &le; level*0.5 = critical</div>
+            <div class="xform-rule">qty &le; level = low</div>
+            <div class="xform-rule">FILTER: needs_reorder</div>
+            <div class="xform-rule">25 rows &rarr; 4 rows</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_product_inventory_alert.csv (4 rows)</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>product_id</th><th>warehouse</th><th>qty_on_hand</th><th>reorder_level</th><th class="added-col">stock_status</th><th class="added-col">needs_reorder</th></tr>
+            <tr><td>P010</td><td>WH01</td><td>15</td><td>25</td><td class="added-col"><span class="tag tag-medium">low</span></td><td class="added-col">True</td></tr>
+            <tr><td>P010</td><td>WH02</td><td>8</td><td>25</td><td class="added-col"><span class="tag tag-high">critical</span></td><td class="added-col">True</td></tr>
+            <tr><td>P012</td><td>WH01</td><td>5</td><td>10</td><td class="added-col"><span class="tag tag-high">critical</span></td><td class="added-col">True</td></tr>
+            <tr><td>P018</td><td>WH01</td><td>10</td><td>30</td><td class="added-col"><span class="tag tag-high">critical</span></td><td class="added-col">True</td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Review Sentiment -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon tgt">&#11088;</div>
+      <div class="flow-title"><h3>m_product_review_sentiment</h3><p>Aggregate review scores per product and classify sentiment (positive/neutral/negative)</p></div>
+      <span class="flow-badge badge-aggregate">AGGREGATE</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: product_reviews.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>review_id</th><th>product_id</th><th>customer_id</th><th>rating</th><th>review_text</th></tr>
+            <tr><td>REV001</td><td>P001</td><td>C001</td><td>5</td><td>Excellent sound quality...</td></tr>
+            <tr><td>REV002</td><td>P001</td><td>C003</td><td>4</td><td>Good but battery could...</td></tr>
+            <tr><td>REV004</td><td>P003</td><td>C005</td><td>3</td><td>Decent but lid leaks...</td></tr>
+            <tr><td>REV005</td><td>P004</td><td>C007</td><td>5</td><td>Best running shoes...</td></tr>
+            <tr><td>REV010</td><td>P008</td><td>C009</td><td>2</td><td>Screen scratched easily...</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#11088;</span> AGG + EXP</h4>
+            <div class="xform-rule">GROUP BY product_id</div>
+            <div class="xform-rule">AVG(rating) &rarr; avg_rating</div>
+            <div class="xform-rule">&ge;4.0 = positive</div>
+            <div class="xform-rule">&ge;3.0 = neutral</div>
+            <div class="xform-rule">&lt;3.0 = negative</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_product_review_sentiment.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>product_id</th><th class="added-col">avg_rating</th><th class="added-col">review_count</th><th class="added-col">min</th><th class="added-col">max</th><th class="added-col">sentiment</th></tr>
+            <tr><td>P001</td><td class="added-col">4.5</td><td class="added-col">2</td><td class="added-col">4</td><td class="added-col">5</td><td class="added-col"><span class="tag tag-pass">positive</span></td></tr>
+            <tr><td>P002</td><td class="added-col">5.0</td><td class="added-col">1</td><td class="added-col">5</td><td class="added-col">5</td><td class="added-col"><span class="tag tag-pass">positive</span></td></tr>
+            <tr><td>P003</td><td class="added-col">3.0</td><td class="added-col">1</td><td class="added-col">3</td><td class="added-col">3</td><td class="added-col"><span class="tag tag-medium">neutral</span></td></tr>
+            <tr><td>P004</td><td class="added-col">4.5</td><td class="added-col">2</td><td class="added-col">4</td><td class="added-col">5</td><td class="added-col"><span class="tag tag-pass">positive</span></td></tr>
+            <tr><td>P005</td><td class="added-col">4.0</td><td class="added-col">1</td><td class="added-col">4</td><td class="added-col">4</td><td class="added-col"><span class="tag tag-pass">positive</span></td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== FINANCE DOMAIN ===================== -->
+<div class="domain-content" id="domain-finance" style="display:none">
+
+  <!-- Budget Variance -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon xform">&#128200;</div>
+      <div class="flow-title"><h3>m_finance_budget_variance</h3><p>Calculate variance between budget and actual amounts, flag over/under/on-budget status</p></div>
+      <span class="flow-badge badge-transform">CALC</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: budget.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>department</th><th>account</th><th>period</th><th>budget_amt</th><th>actual_amt</th></tr>
+            <tr><td>Sales</td><td>4000</td><td>2024-Q1</td><td>$1,500,000</td><td>$1,420,000</td></tr>
+            <tr><td>Sales</td><td>6400</td><td>2024-Q1</td><td>$200,000</td><td>$185,000</td></tr>
+            <tr><td>Engineering</td><td>6100</td><td>2024-Q1</td><td>$450,000</td><td>$462,000</td></tr>
+            <tr><td>Engineering</td><td>6500</td><td>2024-Q1</td><td>$80,000</td><td>$75,000</td></tr>
+            <tr><td>Marketing</td><td>6400</td><td>2024-Q1</td><td>$300,000</td><td>$325,000</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#128200;</span> EXP_VARIANCE</h4>
+            <div class="xform-rule">var = actual - budget</div>
+            <div class="xform-rule">var% = var/budget * 100</div>
+            <div class="xform-rule">&lt;-5% = under_budget</div>
+            <div class="xform-rule">&plusmn;5% = on_budget</div>
+            <div class="xform-rule">&gt;+5% = over_budget</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_finance_budget_variance.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>department</th><th>period</th><th class="added-col">variance_amt</th><th class="added-col">variance_%</th><th class="added-col">status</th></tr>
+            <tr><td>Sales</td><td>2024-Q1</td><td class="added-col" style="color:#4ade80">-$80,000</td><td class="added-col">-5.33%</td><td class="added-col"><span class="tag tag-pass">under_budget</span></td></tr>
+            <tr><td>Sales</td><td>2024-Q1</td><td class="added-col" style="color:#4ade80">-$15,000</td><td class="added-col">-7.50%</td><td class="added-col"><span class="tag tag-pass">under_budget</span></td></tr>
+            <tr><td>Engineering</td><td>2024-Q1</td><td class="added-col">+$12,000</td><td class="added-col">+2.67%</td><td class="added-col"><span class="tag tag-approved">on_budget</span></td></tr>
+            <tr><td>Engineering</td><td>2024-Q1</td><td class="added-col" style="color:#4ade80">-$5,000</td><td class="added-col">-6.25%</td><td class="added-col"><span class="tag tag-pass">under_budget</span></td></tr>
+            <tr><td>Marketing</td><td>2024-Q1</td><td class="added-col" style="color:#fca5a5">+$25,000</td><td class="added-col" style="color:#fca5a5">+8.33%</td><td class="added-col"><span class="tag tag-high">over_budget</span></td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== HR & OPS DOMAIN ===================== -->
+<div class="domain-content" id="domain-hrops" style="display:none">
+
+  <!-- Performance Score -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon xform">&#127942;</div>
+      <div class="flow-title"><h3>m_hr_performance_score</h3><p>Calculate weighted performance score (40% goal + 30% competency + 30% manager rating) and assign tier</p></div>
+      <span class="flow-badge badge-transform">CALC</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: performance.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>employee_id</th><th>period</th><th>goal</th><th>competency</th><th>mgr_rating</th><th>self_rating</th></tr>
+            <tr><td>EMP001</td><td>2024-H1</td><td>4.5</td><td>4.8</td><td>4.6</td><td>4.3</td></tr>
+            <tr><td>EMP002</td><td>2024-H1</td><td>4.2</td><td>4.5</td><td>4.3</td><td>4.0</td></tr>
+            <tr><td>EMP003</td><td>2024-H1</td><td>3.8</td><td>3.9</td><td>3.8</td><td>4.1</td></tr>
+            <tr><td>EMP004</td><td>2024-H1</td><td>4.7</td><td>4.6</td><td>4.7</td><td>4.5</td></tr>
+            <tr><td>EMP005</td><td>2024-H1</td><td>4.0</td><td>4.2</td><td>4.1</td><td>3.9</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#127942;</span> EXP_WEIGHTED</h4>
+            <div class="xform-rule">score = goal*0.4</div>
+            <div class="xform-rule">&nbsp;+ competency*0.3</div>
+            <div class="xform-rule">&nbsp;+ mgr_rating*0.3</div>
+            <div class="xform-rule">&ge;4.5 = exceptional</div>
+            <div class="xform-rule">&ge;3.8 = strong</div>
+            <div class="xform-rule">&ge;3.0 = meets</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_hr_performance_score.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>employee_id</th><th>goal</th><th>comp.</th><th>mgr</th><th class="added-col">weighted_score</th><th class="added-col">performance_tier</th></tr>
+            <tr><td>EMP001</td><td>4.5</td><td>4.8</td><td>4.6</td><td class="added-col"><b>4.62</b></td><td class="added-col"><span class="tag tag-platinum">exceptional</span></td></tr>
+            <tr><td>EMP002</td><td>4.2</td><td>4.5</td><td>4.3</td><td class="added-col"><b>4.32</b></td><td class="added-col"><span class="tag tag-gold">strong</span></td></tr>
+            <tr><td>EMP003</td><td>3.8</td><td>3.9</td><td>3.8</td><td class="added-col"><b>3.83</b></td><td class="added-col"><span class="tag tag-gold">strong</span></td></tr>
+            <tr><td>EMP004</td><td>4.7</td><td>4.6</td><td>4.7</td><td class="added-col"><b>4.67</b></td><td class="added-col"><span class="tag tag-platinum">exceptional</span></td></tr>
+            <tr><td>EMP005</td><td>4.0</td><td>4.2</td><td>4.1</td><td class="added-col"><b>4.09</b></td><td class="added-col"><span class="tag tag-gold">strong</span></td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vendor Scorecard -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon tgt">&#128203;</div>
+      <div class="flow-title"><h3>m_ops_vendor_scorecard</h3><p>Score vendors on delivery, quality, and spend; classify as preferred/approved/probationary</p></div>
+      <span class="flow-badge badge-enrich">ENRICH</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: vendors.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>vendor_id</th><th>vendor_name</th><th>on_time_%</th><th>quality</th><th>total_spend</th></tr>
+            <tr><td>SUP001</td><td>TechVision Electronics</td><td>96.5%</td><td>4.5</td><td>$450K</td></tr>
+            <tr><td>SUP002</td><td>Global Textiles Inc</td><td>92.0%</td><td>4.2</td><td>$280K</td></tr>
+            <tr><td>SUP003</td><td>HomeWare Solutions</td><td>98.0%</td><td>4.7</td><td>$320K</td></tr>
+            <tr><td>SUP004</td><td>ActiveGear Mfg</td><td>88.5%</td><td>4.0</td><td>$185K</td></tr>
+            <tr><td>SUP005</td><td>EcoLiving Products</td><td>94.0%</td><td>4.3</td><td>$120K</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#128203;</span> EXP_SCORECARD</h4>
+            <div class="xform-rule">on_time/100 * 0.4</div>
+            <div class="xform-rule">+ quality/5 * 0.4</div>
+            <div class="xform-rule">+ spend/500K * 0.2</div>
+            <div class="xform-rule">&ge;80 = preferred</div>
+            <div class="xform-rule">&ge;60 = approved</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_ops_vendor_scorecard.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>vendor_id</th><th>vendor_name</th><th class="added-col">composite_score</th><th class="added-col">tier</th></tr>
+            <tr><td>SUP001</td><td>TechVision Electronics</td><td class="added-col"><b>92.60</b></td><td class="added-col"><span class="tag tag-preferred">preferred</span></td></tr>
+            <tr><td>SUP002</td><td>Global Textiles Inc</td><td class="added-col"><b>81.60</b></td><td class="added-col"><span class="tag tag-preferred">preferred</span></td></tr>
+            <tr><td>SUP003</td><td>HomeWare Solutions</td><td class="added-col"><b>89.60</b></td><td class="added-col"><span class="tag tag-preferred">preferred</span></td></tr>
+            <tr><td>SUP004</td><td>ActiveGear Mfg</td><td class="added-col"><b>74.80</b></td><td class="added-col"><span class="tag tag-approved">approved</span></td></tr>
+            <tr><td>SUP005</td><td>EcoLiving Products</td><td class="added-col"><b>76.80</b></td><td class="added-col"><span class="tag tag-approved">approved</span></td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quality Metrics -->
+  <div class="flow-card">
+    <div class="flow-header" onclick="toggleFlow(this)">
+      <div class="flow-icon xform">&#128295;</div>
+      <div class="flow-title"><h3>m_ops_quality_metrics</h3><p>Calculate defect rate from batch inspections and assign A/B/C/F quality grade</p></div>
+      <span class="flow-badge badge-transform">CALC</span>
+      <svg class="chevron" width="20" height="20" viewBox="0 0 20 20"><path d="M7 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </div>
+    <div class="flow-body">
+      <div class="flow-pipeline">
+        <div class="pipe-stage">
+          <div class="pipe-label source"><div class="pipe-dot source"></div>SOURCE: quality_metrics.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>product_id</th><th>inspect_date</th><th>defects</th><th>batch_size</th><th>pass_rate</th></tr>
+            <tr><td>P001</td><td>2024-01-15</td><td>2</td><td>500</td><td>99.60%</td></tr>
+            <tr><td>P001</td><td>2024-02-15</td><td>1</td><td>500</td><td>99.80%</td></tr>
+            <tr><td>P002</td><td>2024-01-20</td><td>5</td><td>1000</td><td>99.50%</td></tr>
+            <tr><td>P003</td><td>2024-01-25</td><td>3</td><td>300</td><td>99.00%</td></tr>
+            <tr><td>P004</td><td>2024-02-01</td><td>0</td><td>200</td><td>100.0%</td></tr>
+          </table></div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage" style="min-width:200px;max-width:240px">
+          <div class="pipe-label transform"><div class="pipe-dot transform"></div>TRANSFORM</div>
+          <div class="xform-box">
+            <h4><span>&#128295;</span> EXP_QUALITY</h4>
+            <div class="xform-rule">defect_rate = defects/batch*100</div>
+            <div class="xform-rule">&ge;99.5% pass = A</div>
+            <div class="xform-rule">&ge;98.0% pass = B</div>
+            <div class="xform-rule">&ge;95.0% pass = C</div>
+            <div class="xform-rule">&lt;95.0% pass = F</div>
+          </div>
+        </div>
+        <div class="pipe-arrow"><svg width="48" height="24" viewBox="0 0 48 24"><path d="M4 12h36M36 6l8 6-8 6" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="pipe-stage">
+          <div class="pipe-label target"><div class="pipe-dot target"></div>TARGET: m_ops_quality_metrics.csv</div>
+          <div class="tbl-wrap"><table>
+            <tr><th>product_id</th><th>defects</th><th>batch</th><th>pass_rate</th><th class="added-col">defect_rate</th><th class="added-col">grade</th></tr>
+            <tr><td>P001</td><td>2</td><td>500</td><td>99.60%</td><td class="added-col">0.40%</td><td class="added-col"><span class="tag tag-a">A</span></td></tr>
+            <tr><td>P001</td><td>1</td><td>500</td><td>99.80%</td><td class="added-col">0.20%</td><td class="added-col"><span class="tag tag-a">A</span></td></tr>
+            <tr><td>P002</td><td>5</td><td>1000</td><td>99.50%</td><td class="added-col">0.50%</td><td class="added-col"><span class="tag tag-a">A</span></td></tr>
+            <tr><td>P003</td><td>3</td><td>300</td><td>99.00%</td><td class="added-col">1.00%</td><td class="added-col"><span class="tag tag-b">B</span></td></tr>
+            <tr><td>P004</td><td>0</td><td>200</td><td>100.0%</td><td class="added-col">0.00%</td><td class="added-col"><span class="tag tag-a">A</span></td></tr>
+          </table></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Summary Cards -->
+<div class="summary-section">
+  <div class="arch-title"><span>&#128202;</span> Mapping Summary by Domain</div>
+  <div class="summary-grid">
+    <div class="summary-card"><h4>Customer Domain</h4><div class="big blue">10</div><p style="color:#64748b;font-size:11px;margin-top:4px">Load, Validate, SCD2, Segment, Mask PII, LTV, Churn</p></div>
+    <div class="summary-card"><h4>Sales Domain</h4><div class="big amber">10</div><p style="color:#64748b;font-size:11px;margin-top:4px">Orders, Tax, Discount, Commission, Returns, Revenue Agg</p></div>
+    <div class="summary-card"><h4>Product Domain</h4><div class="big green">10</div><p style="color:#64748b;font-size:11px;margin-top:4px">Catalog, Inventory, Alerts, Bundles, Reviews, Lifecycle</p></div>
+    <div class="summary-card"><h4>Finance Domain</h4><div class="big purple">10</div><p style="color:#64748b;font-size:11px;margin-top:4px">GL, AP/AR, Journal, Currency, Budget, Expense, Audit</p></div>
+    <div class="summary-card"><h4>HR &amp; Operations</h4><div class="big rose">10</div><p style="color:#64748b;font-size:11px;margin-top:4px">Payroll, Attendance, Performance, Shipping, QC, Vendor</p></div>
+  </div>
+</div>
+
+<div class="footer">
+  XClarity Informatica PowerCenter ETL &mdash; 50 Mappings &middot; 27 Source Files &middot; Built with Python + Docker<br>
+  Run <code style="background:#1e293b;padding:2px 8px;border-radius:4px">docker compose up --build</code> to execute all flows
+</div>
+
+<script>
+function switchDomain(domain, tab) {
+  document.querySelectorAll('.domain-content').forEach(d => d.style.display = 'none');
+  document.querySelectorAll('.domain-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('domain-' + domain).style.display = 'block';
+  tab.classList.add('active');
+}
+
+function toggleFlow(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  body.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+// Open first flow in each domain by default
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.domain-content').forEach(domain => {
+    const first = domain.querySelector('.flow-header');
+    if (first) { first.click(); }
+  });
+});
+</script>
+
+</body>
+</html>

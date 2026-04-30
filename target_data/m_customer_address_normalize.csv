@@ -1,0 +1,21 @@
+address_id,customer_id,address_type,address_line1,address_line2,city,state,zip_code,country,is_primary,address_line1_normalized,address_line2_normalized,load_date,source_system,batch_id
+A001,C001,billing,123 Oak Street,Apt 4B,New York,NY,10001,US,Y,123 Oak Street,Apt 4B,2026-04-30 13:46:25,informatica_etl,AUTO
+A002,C001,shipping,500 Broadway,Floor 3,New York,NY,10012,US,N,500 Broadway,Floor 3,2026-04-30 13:46:25,informatica_etl,AUTO
+A003,C002,billing,456 Maple Ave,,Los Angeles,CA,90001,US,Y,456 Maple Ave,,2026-04-30 13:46:25,informatica_etl,AUTO
+A004,C003,billing,789 Pine Road,Suite 100,Chicago,IL,60601,US,Y,789 Pine Road,Suite 100,2026-04-30 13:46:25,informatica_etl,AUTO
+A005,C003,shipping,100 Lake Shore Dr,,Chicago,IL,60611,US,N,100 Lake Shore Dr,,2026-04-30 13:46:25,informatica_etl,AUTO
+A006,C004,billing,321 Elm Street,,Houston,TX,77001,US,Y,321 Elm Street,,2026-04-30 13:46:25,informatica_etl,AUTO
+A007,C005,billing,654 Cedar Lane,Unit 7,Phoenix,AZ,85001,US,Y,654 Cedar Lane,Unit 7,2026-04-30 13:46:25,informatica_etl,AUTO
+A008,C006,billing,987 Birch Drive,,Philadelphia,PA,19101,US,Y,987 Birch Drive,,2026-04-30 13:46:25,informatica_etl,AUTO
+A009,C007,billing,147 Walnut Blvd,Apt 12,San Antonio,TX,78201,US,Y,147 Walnut Blvd,Apt 12,2026-04-30 13:46:25,informatica_etl,AUTO
+A010,C008,billing,258 Spruce Way,,San Diego,CA,92101,US,Y,258 Spruce Way,,2026-04-30 13:46:25,informatica_etl,AUTO
+A011,C009,billing,369 Ash Court,Suite 300,Dallas,TX,75201,US,Y,369 Ash Court,Suite 300,2026-04-30 13:46:25,informatica_etl,AUTO
+A012,C010,billing,741 Poplar Street,,San Jose,CA,95101,US,Y,741 Poplar Street,,2026-04-30 13:46:25,informatica_etl,AUTO
+A013,C011,billing,852 Willow Lane,Apt 8A,Austin,TX,73301,US,Y,852 Willow Lane,Apt 8A,2026-04-30 13:46:25,informatica_etl,AUTO
+A014,C012,billing,963 Hickory Ave,,Jacksonville,FL,32099,US,Y,963 Hickory Ave,,2026-04-30 13:46:25,informatica_etl,AUTO
+A015,C013,billing,174 Cypress Road,Unit 3,San Francisco,CA,94101,US,Y,174 Cypress Road,Unit 3,2026-04-30 13:46:25,informatica_etl,AUTO
+A016,C014,billing,285 Magnolia Dr,,Columbus,OH,43085,US,Y,285 Magnolia Dr,,2026-04-30 13:46:25,informatica_etl,AUTO
+A017,C015,billing,396 Dogwood Blvd,Suite 50,Charlotte,NC,28201,US,Y,396 Dogwood Blvd,Suite 50,2026-04-30 13:46:25,informatica_etl,AUTO
+A018,C016,billing,507 Redwood Ct,,Seattle,WA,98101,US,Y,507 Redwood Ct,,2026-04-30 13:46:25,informatica_etl,AUTO
+A019,C017,billing,618 Sequoia Way,Apt 2C,Denver,CO,80201,US,Y,618 Sequoia Way,Apt 2C,2026-04-30 13:46:25,informatica_etl,AUTO
+A020,C018,billing,729 Sycamore St,,Nashville,TN,37201,US,Y,729 Sycamore St,,2026-04-30 13:46:25,informatica_etl,AUTO

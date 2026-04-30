@@ -1,0 +1,5 @@
+inventory_id,product_id,warehouse_id,quantity_on_hand,reorder_level,last_restock_date,stock_status,needs_reorder,load_date,source_system,batch_id
+INV014,P010,WH01,15,25,2024-03-10,low,True,2026-04-30 13:46:25,informatica_etl,AUTO
+INV015,P010,WH02,8,25,2024-02-20,critical,True,2026-04-30 13:46:25,informatica_etl,AUTO
+INV017,P012,WH01,5,10,2023-12-01,critical,True,2026-04-30 13:46:25,informatica_etl,AUTO
+INV023,P018,WH01,10,30,2024-01-15,critical,True,2026-04-30 13:46:25,informatica_etl,AUTO

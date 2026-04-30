@@ -1,0 +1,4 @@
+bundle_id,bundle_name,product_ids,bundle_price,bundle_cost,savings_pct,load_date,source_system,batch_id
+BDL_ELEC,Electronics Essentials Bundle,"P001,P005,P008",255.0,129.5,15.0,2026-04-30 13:46:25,informatica_etl,AUTO
+BDL_CLOT,Clothing Essentials Bundle,"P002,P004,P011",263.5,128.0,15.0,2026-04-30 13:46:25,informatica_etl,AUTO
+BDL_HOME,Home Essentials Bundle,"P003,P006,P007",179.81,85.0,15.0,2026-04-30 13:46:25,informatica_etl,AUTO

@@ -1,0 +1,21 @@
+employee_id,first_name,last_name,email,department,title,hire_date,salary,manager_id,status,goal_score,manager_rating,tenure_months,turnover_risk,load_date,source_system,batch_id
+EMP001,Thomas,Reynolds,treynolds@company.com,Engineering,VP of Engineering,2020-03-15,185000.0,,active,4.5,4.6,74,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP002,Maria,Santos,msantos@company.com,Engineering,Senior Software Engineer,2021-06-01,145000.0,EMP001,active,4.2,4.3,59,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP003,William,Chen,wchen@company.com,Engineering,Software Engineer,2022-01-10,115000.0,EMP001,active,3.8,3.8,52,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP004,Patricia,O'Brien,pobrien@company.com,Sales,VP of Sales,2019-08-20,175000.0,,active,4.7,4.7,81,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP005,John,Kim,jkim@company.com,Sales,Sales Manager,2021-02-15,130000.0,EMP004,active,4.0,4.1,63,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP006,Linda,Patel,lpatel@company.com,Sales,Sales Representative,2022-05-01,85000.0,EMP005,active,3.5,3.5,48,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP007,Richard,Nguyen,rnguyen@company.com,Marketing,Marketing Director,2020-11-10,155000.0,,active,4.3,4.3,66,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP008,Barbara,Thompson,bthompson@company.com,Marketing,Content Manager,2022-03-20,95000.0,EMP007,active,3.9,3.9,50,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP009,Charles,Rivera,crivera@company.com,Finance,CFO,2019-01-15,200000.0,,active,4.8,4.8,88,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP010,Susan,Morris,smorris@company.com,Finance,Financial Analyst,2021-09-01,105000.0,EMP009,active,4.1,4.0,56,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP011,Joseph,Cooper,jcooper@company.com,HR,HR Director,2020-04-01,140000.0,,active,4.4,4.4,74,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP012,Karen,Washington,kwashington@company.com,HR,HR Specialist,2022-07-15,80000.0,EMP011,active,3.7,3.7,46,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP013,Daniel,Phillips,dphillips@company.com,Operations,VP of Operations,2019-06-10,170000.0,,active,4.6,4.6,83,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP014,Nancy,Hughes,nhughes@company.com,Operations,Logistics Manager,2021-03-22,110000.0,EMP013,active,4.0,4.0,62,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP015,Mark,Butler,mbutler@company.com,Operations,Warehouse Supervisor,2022-02-01,75000.0,EMP014,active,3.6,3.5,51,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP016,Betty,Reed,breed@company.com,Engineering,QA Engineer,2023-01-08,100000.0,EMP001,active,3.9,3.9,40,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP017,George,Cook,gcook@company.com,Sales,Sales Representative,2023-04-15,82000.0,EMP005,active,3.4,3.3,37,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP018,Helen,Morgan,hmorgan@company.com,Finance,Accountant,2022-11-01,90000.0,EMP009,active,4.0,4.0,42,low,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP019,Steven,Bell,sbell@company.com,Engineering,DevOps Engineer,2021-08-15,135000.0,EMP001,terminated,2.5,2.6,57,high,2026-04-30 13:46:25,informatica_etl,AUTO
+EMP020,Dorothy,Murphy,dmurphy@company.com,Marketing,Graphic Designer,2023-06-01,78000.0,EMP007,active,3.8,3.7,35,low,2026-04-30 13:46:25,informatica_etl,AUTO

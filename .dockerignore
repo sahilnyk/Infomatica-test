@@ -1,0 +1,6 @@
+target_data/
+__pycache__/
+*.pyc
+*.log
+.git
+.dockerignore

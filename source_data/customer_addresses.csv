@@ -1,0 +1,21 @@
+address_id,customer_id,address_type,address_line1,address_line2,city,state,zip_code,country,is_primary
+A001,C001,billing,123 Oak Street,Apt 4B,New York,NY,10001,US,Y
+A002,C001,shipping,500 Broadway,Floor 3,New York,NY,10012,US,N
+A003,C002,billing,456 Maple Ave,,Los Angeles,CA,90001,US,Y
+A004,C003,billing,789 Pine Road,Suite 100,Chicago,IL,60601,US,Y
+A005,C003,shipping,100 Lake Shore Dr,,Chicago,IL,60611,US,N
+A006,C004,billing,321 Elm Street,,Houston,TX,77001,US,Y
+A007,C005,billing,654 Cedar Lane,Unit 7,Phoenix,AZ,85001,US,Y
+A008,C006,billing,987 Birch Drive,,Philadelphia,PA,19101,US,Y
+A009,C007,billing,147 Walnut Blvd,Apt 12,San Antonio,TX,78201,US,Y
+A010,C008,billing,258 Spruce Way,,San Diego,CA,92101,US,Y
+A011,C009,billing,369 Ash Court,Suite 300,Dallas,TX,75201,US,Y
+A012,C010,billing,741 Poplar Street,,San Jose,CA,95101,US,Y
+A013,C011,billing,852 Willow Lane,Apt 8A,Austin,TX,73301,US,Y
+A014,C012,billing,963 Hickory Ave,,Jacksonville,FL,32099,US,Y
+A015,C013,billing,174 Cypress Road,Unit 3,San Francisco,CA,94101,US,Y
+A016,C014,billing,285 Magnolia Dr,,Columbus,OH,43085,US,Y
+A017,C015,billing,396 Dogwood Blvd,Suite 50,Charlotte,NC,28201,US,Y
+A018,C016,billing,507 Redwood Ct,,Seattle,WA,98101,US,Y
+A019,C017,billing,618 Sequoia Way,Apt 2C,Denver,CO,80201,US,Y
+A020,C018,billing,729 Sycamore St,,Nashville,TN,37201,US,Y

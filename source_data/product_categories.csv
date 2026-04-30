@@ -1,0 +1,16 @@
+category_id,category_name,parent_category_id,level,description
+CAT001,Electronics,,1,Electronic devices and accessories
+CAT002,Clothing,,1,Apparel and fashion items
+CAT003,Home,,1,Home goods and furnishings
+CAT004,Audio,CAT001,2,Headphones speakers and audio equipment
+CAT005,Accessories,CAT001,2,Electronic accessories and peripherals
+CAT006,Wearables,CAT001,2,Smart watches and fitness trackers
+CAT007,Lighting,CAT001,2,LED and smart lighting products
+CAT008,Tops,CAT002,2,T-shirts sweaters and upper body clothing
+CAT009,Footwear,CAT002,2,Shoes boots and sandals
+CAT010,Outerwear,CAT002,2,Jackets coats and outer layers
+CAT011,Kitchen,CAT003,2,Kitchen tools and cookware
+CAT012,Fitness,CAT003,2,Exercise and fitness equipment
+CAT013,Bedding,CAT003,2,Sheets pillows and bed accessories
+CAT014,Appliances,CAT003,2,Small home appliances
+CAT015,Clothing Accessories,CAT002,2,Bags belts and fashion accessories

@@ -1,0 +1,21 @@
+product_id,product_name,category,subcategory,unit_price,cost_price,supplier_id,status,launch_date,lifecycle_stage,load_date,source_system,batch_id
+P001,Wireless Bluetooth Headphones,Electronics,Audio,75.0,32.5,SUP001,active,2023-03-15,decline,2026-04-30 13:46:25,informatica_etl,AUTO
+P002,Organic Cotton T-Shirt,Clothing,Tops,45.0,18.0,SUP002,active,2023-01-20,decline,2026-04-30 13:46:25,informatica_etl,AUTO
+P003,Stainless Steel Water Bottle,Home,Kitchen,89.99,35.0,SUP003,active,2023-05-10,decline,2026-04-30 13:46:25,informatica_etl,AUTO
+P004,Running Shoes Pro,Clothing,Footwear,145.0,62.0,SUP004,active,2023-06-01,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P005,Laptop Stand Adjustable,Electronics,Accessories,100.0,42.0,SUP001,active,2023-04-18,decline,2026-04-30 13:46:25,informatica_etl,AUTO
+P006,Yoga Mat Premium,Home,Fitness,67.8,28.0,SUP005,active,2023-02-14,decline,2026-04-30 13:46:25,informatica_etl,AUTO
+P007,Ceramic Coffee Mug Set,Home,Kitchen,53.75,22.0,SUP003,active,2023-07-22,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P008,Smart Watch Series X,Electronics,Wearables,125.0,55.0,SUP006,active,2023-08-05,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P009,Bamboo Cutting Board,Home,Kitchen,50.6,20.0,SUP003,active,2023-09-12,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P010,Noise Cancelling Earbuds,Electronics,Audio,150.0,65.0,SUP001,active,2023-10-01,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P011,Denim Jacket Classic,Clothing,Outerwear,120.0,48.0,SUP002,active,2023-04-25,decline,2026-04-30 13:46:25,informatica_etl,AUTO
+P012,LED Desk Lamp,Electronics,Lighting,85.0,34.0,SUP006,discontinued,2022-11-15,end_of_life,2026-04-30 13:46:25,informatica_etl,AUTO
+P013,Cotton Bed Sheet Set,Home,Bedding,95.0,40.0,SUP005,active,2023-06-20,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P014,Wireless Charging Pad,Electronics,Accessories,35.0,14.0,SUP001,active,2023-08-30,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P015,Hiking Backpack 40L,Clothing,Accessories,130.0,55.0,SUP004,active,2023-03-10,decline,2026-04-30 13:46:25,informatica_etl,AUTO
+P016,Cast Iron Skillet,Home,Kitchen,65.0,28.0,SUP003,active,2023-01-05,decline,2026-04-30 13:46:25,informatica_etl,AUTO
+P017,Bluetooth Speaker Mini,Electronics,Audio,55.0,22.0,SUP001,active,2023-11-10,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P018,Wool Sweater Knit,Clothing,Tops,98.0,42.0,SUP002,seasonal,2023-09-01,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P019,Air Purifier Compact,Home,Appliances,180.0,78.0,SUP006,active,2023-07-15,maturity,2026-04-30 13:46:25,informatica_etl,AUTO
+P020,Fitness Tracker Band,Electronics,Wearables,79.99,33.0,SUP006,active,2023-05-28,maturity,2026-04-30 13:46:25,informatica_etl,AUTO

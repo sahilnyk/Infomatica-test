@@ -1,0 +1,21 @@
+customer_id,first_name,last_name,email,phone,address_line1,address_line2,city,state,zip_code,country,registration_date,status,address_type,load_date,source_system,batch_id
+C001,James,Mitchell,james.mitchell@email.com,+1-555-0101,123 Oak Street,Apt 4B,New York,NY,10001,US,2023-01-15,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C002,Sarah,Johnson,sarah.j@email.com,+1-555-0102,456 Maple Ave,,Los Angeles,CA,90001,US,2023-02-20,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C003,Robert,Williams,rwilliams@email.com,+1-555-0103,789 Pine Road,Suite 100,Chicago,IL,60601,US,2023-03-10,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C004,Emily,Brown,emily.brown@email.com,+1-555-0104,321 Elm Street,,Houston,TX,77001,US,2023-04-05,inactive,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C005,Michael,Davis,mdavis@email.com,+1-555-0105,654 Cedar Lane,Unit 7,Phoenix,AZ,85001,US,2023-05-12,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C006,Jennifer,Garcia,jgarcia@email.com,+1-555-0106,987 Birch Drive,,Philadelphia,PA,19101,US,2023-06-18,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C007,David,Martinez,david.m@email.com,+1-555-0107,147 Walnut Blvd,Apt 12,San Antonio,TX,78201,US,2023-07-22,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C008,Lisa,Anderson,lisa.anderson@email.com,+1-555-0108,258 Spruce Way,,San Diego,CA,92101,US,2023-08-30,inactive,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C009,Christopher,Taylor,ctaylor@email.com,+1-555-0109,369 Ash Court,Suite 300,Dallas,TX,75201,US,2023-09-14,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C010,Amanda,Thomas,amanda.t@email.com,+1-555-0110,741 Poplar Street,,San Jose,CA,95101,US,2023-10-01,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C011,Daniel,Hernandez,dhernandez@email.com,+1-555-0111,852 Willow Lane,Apt 8A,Austin,TX,73301,US,2023-10-15,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C012,Jessica,Moore,jmoore@email.com,+1-555-0112,963 Hickory Ave,,Jacksonville,FL,32099,US,2023-11-02,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C013,Matthew,Jackson,mjackson@email.com,+1-555-0113,174 Cypress Road,Unit 3,San Francisco,CA,94101,US,2023-11-20,inactive,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C014,Ashley,White,awhite@email.com,+1-555-0114,285 Magnolia Dr,,Columbus,OH,43085,US,2023-12-05,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C015,Andrew,Lopez,alopez@email.com,+1-555-0115,396 Dogwood Blvd,Suite 50,Charlotte,NC,28201,US,2024-01-10,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C016,Stephanie,Lee,slee@email.com,+1-555-0116,507 Redwood Ct,,Seattle,WA,98101,US,2024-01-25,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C017,Joshua,Clark,jclark@email.com,+1-555-0117,618 Sequoia Way,Apt 2C,Denver,CO,80201,US,2024-02-14,active,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C018,Nicole,Lewis,nlewis@email.com,+1-555-0118,729 Sycamore St,,Nashville,TN,37201,US,2024-03-01,inactive,billing,2026-04-30 13:46:25,informatica_etl,AUTO
+C019,Kevin,Robinson,krobinson@email.com,+1-555-0119,840 Chestnut Ave,Unit 11,Portland,OR,97201,US,2024-03-18,active,,2026-04-30 13:46:25,informatica_etl,AUTO
+C020,Rachel,Walker,rwalker@email.com,+1-555-0120,951 Beech Lane,,Detroit,MI,48201,US,2024-04-02,active,,2026-04-30 13:46:25,informatica_etl,AUTO

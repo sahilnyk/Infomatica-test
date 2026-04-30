@@ -1,0 +1,21 @@
+product_id,product_name,category,purchase_frequency,recommendation_score,load_date,source_system,batch_id
+P001,Wireless Bluetooth Headphones,Electronics,3,100.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P003,Stainless Steel Water Bottle,Home,3,100.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P006,Yoga Mat Premium,Home,3,100.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P005,Laptop Stand Adjustable,Electronics,3,100.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P010,Noise Cancelling Earbuds,Electronics,3,100.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P002,Organic Cotton T-Shirt,Clothing,2,66.66666666666666,2026-04-30 13:46:25,informatica_etl,AUTO
+P004,Running Shoes Pro,Clothing,2,66.66666666666666,2026-04-30 13:46:25,informatica_etl,AUTO
+P007,Ceramic Coffee Mug Set,Home,2,66.66666666666666,2026-04-30 13:46:25,informatica_etl,AUTO
+P008,Smart Watch Series X,Electronics,2,66.66666666666666,2026-04-30 13:46:25,informatica_etl,AUTO
+P009,Bamboo Cutting Board,Home,2,66.66666666666666,2026-04-30 13:46:25,informatica_etl,AUTO
+P011,Denim Jacket Classic,Clothing,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P012,LED Desk Lamp,Electronics,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P013,Cotton Bed Sheet Set,Home,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P014,Wireless Charging Pad,Electronics,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P015,Hiking Backpack 40L,Clothing,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P016,Cast Iron Skillet,Home,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P017,Bluetooth Speaker Mini,Electronics,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P018,Wool Sweater Knit,Clothing,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P019,Air Purifier Compact,Home,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO
+P020,Fitness Tracker Band,Electronics,0,0.0,2026-04-30 13:46:25,informatica_etl,AUTO

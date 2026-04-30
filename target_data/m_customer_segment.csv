@@ -1,0 +1,21 @@
+customer_id,first_name,last_name,total_spend,order_count,segment,load_date,source_system,batch_id
+C001,James,Mitchell,375.5,2,gold,2026-04-30 13:46:25,informatica_etl,AUTO
+C002,Sarah,Johnson,429.99,2,platinum,2026-04-30 13:46:25,informatica_etl,AUTO
+C003,Robert,Williams,175.25,1,silver,2026-04-30 13:46:25,informatica_etl,AUTO
+C004,Emily,Brown,430.0,1,platinum,2026-04-30 13:46:25,informatica_etl,AUTO
+C005,Michael,Davis,267.79,2,gold,2026-04-30 13:46:25,informatica_etl,AUTO
+C006,Jennifer,Garcia,312.45,1,gold,2026-04-30 13:46:25,informatica_etl,AUTO
+C007,David,Martinez,88.0,1,bronze,2026-04-30 13:46:25,informatica_etl,AUTO
+C008,Lisa,Anderson,145.6,1,silver,2026-04-30 13:46:25,informatica_etl,AUTO
+C009,Christopher,Taylor,520.0,1,platinum,2026-04-30 13:46:25,informatica_etl,AUTO
+C010,Amanda,Thomas,210.3,1,gold,2026-04-30 13:46:25,informatica_etl,AUTO
+C011,Daniel,Hernandez,95.4,1,bronze,2026-04-30 13:46:25,informatica_etl,AUTO
+C012,Jessica,Moore,680.0,1,platinum,2026-04-30 13:46:25,informatica_etl,AUTO
+C013,Matthew,Jackson,155.75,1,silver,2026-04-30 13:46:25,informatica_etl,AUTO
+C014,Ashley,White,42.99,1,bronze,2026-04-30 13:46:25,informatica_etl,AUTO
+C015,Andrew,Lopez,290.0,1,gold,2026-04-30 13:46:25,informatica_etl,AUTO
+C016,Stephanie,Lee,178.5,1,silver,2026-04-30 13:46:25,informatica_etl,AUTO
+C017,Joshua,Clark,365.0,1,gold,2026-04-30 13:46:25,informatica_etl,AUTO
+C018,Nicole,Lewis,99.99,1,bronze,2026-04-30 13:46:25,informatica_etl,AUTO
+C019,Kevin,Robinson,445.6,1,platinum,2026-04-30 13:46:25,informatica_etl,AUTO
+C020,Rachel,Walker,230.0,1,gold,2026-04-30 13:46:25,informatica_etl,AUTO

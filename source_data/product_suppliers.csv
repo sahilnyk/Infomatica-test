@@ -1,0 +1,11 @@
+supplier_id,supplier_name,contact_email,contact_phone,country,rating,payment_terms
+SUP001,TechVision Electronics,sales@techvision.com,+1-800-555-0201,US,4.5,Net 30
+SUP002,Global Textiles Inc,orders@globaltextiles.com,+1-800-555-0202,US,4.2,Net 45
+SUP003,HomeWare Solutions,supply@homewaresol.com,+1-800-555-0203,US,4.7,Net 30
+SUP004,ActiveGear Manufacturing,bulk@activegear.com,+1-800-555-0204,CN,4.0,Net 60
+SUP005,EcoLiving Products,info@ecoliving.com,+1-800-555-0205,US,4.3,Net 30
+SUP006,SmartDevice Corp,wholesale@smartdevice.com,+1-800-555-0206,KR,4.6,Net 45
+SUP007,Pacific Imports Ltd,orders@pacificimports.com,+1-800-555-0207,JP,3.9,Net 30
+SUP008,Nordic Design Co,supply@nordicdesign.com,+46-800-555-0208,SE,4.4,Net 60
+SUP009,Artisan Craft Works,sales@artisancraft.com,+1-800-555-0209,US,4.1,Net 30
+SUP010,Precision Parts Inc,orders@precisionparts.com,+1-800-555-0210,DE,4.8,Net 45

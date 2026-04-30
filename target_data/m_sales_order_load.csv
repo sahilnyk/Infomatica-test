@@ -1,0 +1,21 @@
+order_id,customer_id,order_date,status,total_amount,shipping_amount,sales_rep_id,region,channel,load_date,source_system,batch_id
+ORD001,C001,2024-01-05,completed,250.0,12.99,SR01,Northeast,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD002,C002,2024-01-12,completed,89.99,8.5,SR02,West,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD003,C003,2024-01-20,completed,175.25,0.0,SR03,Midwest,store,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD004,C004,2024-01-08,completed,430.0,15.99,SR01,South,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD005,C005,2024-02-14,completed,67.8,0.0,SR04,West,store,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD006,C006,2024-01-25,completed,312.45,12.99,SR05,Northeast,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD007,C007,2024-02-05,completed,88.0,0.0,SR06,South,store,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD008,C008,2024-01-30,shipped,145.6,9.99,SR02,West,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD009,C009,2024-03-10,completed,520.0,0.0,SR07,South,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD010,C010,2024-02-20,completed,210.3,0.0,SR04,West,store,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD011,C011,2024-01-18,completed,95.4,8.5,SR06,South,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD012,C012,2024-03-05,processing,680.0,15.99,SR08,Southeast,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD013,C013,2024-02-22,completed,155.75,0.0,SR02,West,store,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD014,C014,2024-01-28,completed,42.99,5.99,SR09,Midwest,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD015,C015,2024-03-15,shipped,290.0,12.99,SR05,Northeast,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD016,C002,2024-03-15,completed,340.0,12.99,SR02,West,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD017,C005,2024-03-01,completed,199.99,8.5,SR04,West,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD018,C016,2024-02-08,completed,178.5,0.0,SR10,West,store,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD019,C017,2024-01-14,completed,365.0,12.99,SR03,Midwest,online,2026-04-30 13:46:25,informatica_etl,AUTO
+ORD020,C019,2024-02-25,completed,445.6,0.0,SR06,South,store,2026-04-30 13:46:25,informatica_etl,AUTO

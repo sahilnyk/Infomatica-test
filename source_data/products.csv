@@ -1,0 +1,21 @@
+product_id,product_name,category,subcategory,unit_price,cost_price,supplier_id,status,launch_date
+P001,Wireless Bluetooth Headphones,Electronics,Audio,75.00,32.50,SUP001,active,2023-03-15
+P002,Organic Cotton T-Shirt,Clothing,Tops,45.00,18.00,SUP002,active,2023-01-20
+P003,Stainless Steel Water Bottle,Home,Kitchen,89.99,35.00,SUP003,active,2023-05-10
+P004,Running Shoes Pro,Clothing,Footwear,145.00,62.00,SUP004,active,2023-06-01
+P005,Laptop Stand Adjustable,Electronics,Accessories,100.00,42.00,SUP001,active,2023-04-18
+P006,Yoga Mat Premium,Home,Fitness,67.80,28.00,SUP005,active,2023-02-14
+P007,Ceramic Coffee Mug Set,Home,Kitchen,53.75,22.00,SUP003,active,2023-07-22
+P008,Smart Watch Series X,Electronics,Wearables,125.00,55.00,SUP006,active,2023-08-05
+P009,Bamboo Cutting Board,Home,Kitchen,50.60,20.00,SUP003,active,2023-09-12
+P010,Noise Cancelling Earbuds,Electronics,Audio,150.00,65.00,SUP001,active,2023-10-01
+P011,Denim Jacket Classic,Clothing,Outerwear,120.00,48.00,SUP002,active,2023-04-25
+P012,LED Desk Lamp,Electronics,Lighting,85.00,34.00,SUP006,discontinued,2022-11-15
+P013,Cotton Bed Sheet Set,Home,Bedding,95.00,40.00,SUP005,active,2023-06-20
+P014,Wireless Charging Pad,Electronics,Accessories,35.00,14.00,SUP001,active,2023-08-30
+P015,Hiking Backpack 40L,Clothing,Accessories,130.00,55.00,SUP004,active,2023-03-10
+P016,Cast Iron Skillet,Home,Kitchen,65.00,28.00,SUP003,active,2023-01-05
+P017,Bluetooth Speaker Mini,Electronics,Audio,55.00,22.00,SUP001,active,2023-11-10
+P018,Wool Sweater Knit,Clothing,Tops,98.00,42.00,SUP002,seasonal,2023-09-01
+P019,Air Purifier Compact,Home,Appliances,180.00,78.00,SUP006,active,2023-07-15
+P020,Fitness Tracker Band,Electronics,Wearables,79.99,33.00,SUP006,active,2023-05-28

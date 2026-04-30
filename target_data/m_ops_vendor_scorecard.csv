@@ -1,0 +1,11 @@
+vendor_id,vendor_name,category,contract_start,contract_end,total_spend,on_time_delivery_pct,quality_score,composite_score,tier,load_date,source_system,batch_id
+SUP001,TechVision Electronics,electronics,2023-01-01,2025-12-31,450000.0,96.5,4.5,92.6,preferred,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP002,Global Textiles Inc,textiles,2023-03-15,2025-03-14,280000.0,92.0,4.2,81.6,preferred,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP003,HomeWare Solutions,housewares,2023-02-01,2025-01-31,320000.0,98.0,4.7,89.6,preferred,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP004,ActiveGear Manufacturing,sporting_goods,2023-06-01,2025-05-31,185000.0,88.5,4.0,74.8,approved,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP005,EcoLiving Products,home_goods,2023-04-15,2025-04-14,120000.0,94.0,4.3,76.8,approved,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP006,SmartDevice Corp,electronics,2023-05-01,2025-04-30,380000.0,97.0,4.6,90.8,preferred,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP007,Pacific Imports Ltd,general,2023-07-01,2025-06-30,95000.0,85.0,3.9,69.0,approved,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP008,Nordic Design Co,furniture,2023-09-01,2025-08-31,160000.0,91.5,4.4,78.2,approved,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP009,Artisan Craft Works,crafts,2023-08-15,2025-08-14,55000.0,93.0,4.1,72.2,approved,2026-04-30 13:46:25,informatica_etl,AUTO
+SUP010,Precision Parts Inc,components,2023-10-01,2025-09-30,210000.0,99.0,4.8,86.4,preferred,2026-04-30 13:46:25,informatica_etl,AUTO

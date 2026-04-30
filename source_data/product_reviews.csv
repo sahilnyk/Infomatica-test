@@ -1,0 +1,21 @@
+review_id,product_id,customer_id,rating,review_text,review_date
+REV001,P001,C001,5,Excellent sound quality and comfortable fit,2024-01-20
+REV002,P001,C003,4,Good headphones but battery could be better,2024-02-05
+REV003,P002,C002,5,Super soft fabric and great fit,2024-01-25
+REV004,P003,C005,3,Decent bottle but lid leaks sometimes,2024-02-10
+REV005,P004,C007,5,Best running shoes I have ever owned,2024-02-15
+REV006,P004,C011,4,Great support but runs a bit narrow,2024-03-01
+REV007,P005,C001,4,Sturdy and adjustable works well,2024-02-20
+REV008,P006,C006,5,Perfect thickness and grip for yoga,2024-01-30
+REV009,P007,C010,4,Beautiful design holds heat well,2024-02-12
+REV010,P008,C009,2,Screen scratched easily disappointed,2024-03-05
+REV011,P008,C014,4,Great features for the price,2024-03-10
+REV012,P009,C012,5,Gorgeous board and very durable,2024-02-28
+REV013,P010,C003,5,Amazing noise cancellation,2024-03-15
+REV014,P010,C015,4,Sound is great but case is flimsy,2024-03-18
+REV015,P011,C016,3,Looks good but stitching came loose,2024-02-22
+REV016,P013,C017,5,Softest sheets I have ever slept on,2024-03-01
+REV017,P014,C019,4,Charges fast and looks sleek,2024-03-08
+REV018,P015,C005,5,Tons of room and very comfortable to carry,2024-02-18
+REV019,P016,C020,4,Heavy but heats evenly every time,2024-01-28
+REV020,P017,C011,3,Sound is okay for the size nothing special,2024-03-12

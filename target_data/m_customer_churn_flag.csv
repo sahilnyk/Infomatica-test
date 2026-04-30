@@ -1,0 +1,21 @@
+customer_id,first_name,last_name,status,last_transaction_date,churn_risk,load_date,source_system,batch_id
+C001,James,Mitchell,active,2024-02-10,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C002,Sarah,Johnson,active,2024-03-15,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C003,Robert,Williams,active,2024-02-28,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C004,Emily,Brown,inactive,2024-01-08,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C005,Michael,Davis,active,2024-03-01,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C006,Jennifer,Garcia,active,2024-01-25,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C007,David,Martinez,active,2024-02-05,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C008,Lisa,Anderson,inactive,2024-01-30,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C009,Christopher,Taylor,active,2024-03-12,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C010,Amanda,Thomas,active,2024-02-20,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C011,Daniel,Hernandez,active,2024-01-18,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C012,Jessica,Moore,active,2024-03-05,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C013,Matthew,Jackson,inactive,2024-02-22,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C014,Ashley,White,active,2024-01-28,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C015,Andrew,Lopez,active,2024-03-15,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C016,Stephanie,Lee,active,2024-02-08,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C017,Joshua,Clark,active,2024-01-14,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C018,Nicole,Lewis,inactive,2024-03-20,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C019,Kevin,Robinson,active,2024-02-25,high,2026-04-30 13:46:25,informatica_etl,AUTO
+C020,Rachel,Walker,active,2024-01-22,high,2026-04-30 13:46:25,informatica_etl,AUTO

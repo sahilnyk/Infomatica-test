@@ -1,0 +1,12 @@
+entry_id,account_code,account_name,entry_date,debit_amount,credit_amount,description,entity_id,currency,expense_category,load_date,source_system,batch_id
+GL002,1200,Accounts Receivable,2024-01-05,250.0,0.0,Sales order ORD001,ENT01,USD,Other,2026-04-30 13:46:25,informatica_etl,AUTO
+GL004,1200,Accounts Receivable,2024-01-12,89.99,0.0,Sales order ORD002,ENT01,USD,Other,2026-04-30 13:46:25,informatica_etl,AUTO
+GL005,5000,Cost of Goods Sold,2024-01-15,150.0,0.0,COGS for January batch,ENT01,USD,COGS,2026-04-30 13:46:25,informatica_etl,AUTO
+GL007,6100,Salaries Expense,2024-01-31,85000.0,0.0,January payroll,ENT01,USD,Payroll,2026-04-30 13:46:25,informatica_etl,AUTO
+GL010,1200,Accounts Receivable,2024-02-05,88.0,0.0,Sales order ORD007,ENT01,USD,Other,2026-04-30 13:46:25,informatica_etl,AUTO
+GL011,6200,Rent Expense,2024-02-01,12000.0,0.0,February office rent,ENT01,USD,Facilities,2026-04-30 13:46:25,informatica_etl,AUTO
+GL015,6300,Utilities Expense,2024-02-15,3500.0,0.0,February utilities,ENT01,USD,Utilities,2026-04-30 13:46:25,informatica_etl,AUTO
+GL018,1200,Accounts Receivable,2024-03-10,520.0,0.0,Sales order ORD009,ENT02,USD,Other,2026-04-30 13:46:25,informatica_etl,AUTO
+GL019,6100,Salaries Expense,2024-02-29,85000.0,0.0,February payroll,ENT01,USD,Payroll,2026-04-30 13:46:25,informatica_etl,AUTO
+GL022,5000,Cost of Goods Sold,2024-02-28,220.0,0.0,COGS for February batch,ENT01,USD,COGS,2026-04-30 13:46:25,informatica_etl,AUTO
+GL024,6400,Marketing Expense,2024-03-01,25000.0,0.0,Q1 marketing campaign,ENT02,USD,Marketing,2026-04-30 13:46:25,informatica_etl,AUTO

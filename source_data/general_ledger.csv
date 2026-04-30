@@ -1,0 +1,26 @@
+entry_id,account_code,account_name,entry_date,debit_amount,credit_amount,description,entity_id,currency
+GL001,4000,Revenue,2024-01-05,0.00,250.00,Sales order ORD001,ENT01,USD
+GL002,1200,Accounts Receivable,2024-01-05,250.00,0.00,Sales order ORD001,ENT01,USD
+GL003,4000,Revenue,2024-01-12,0.00,89.99,Sales order ORD002,ENT01,USD
+GL004,1200,Accounts Receivable,2024-01-12,89.99,0.00,Sales order ORD002,ENT01,USD
+GL005,5000,Cost of Goods Sold,2024-01-15,150.00,0.00,COGS for January batch,ENT01,USD
+GL006,1300,Inventory,2024-01-15,0.00,150.00,COGS for January batch,ENT01,USD
+GL007,6100,Salaries Expense,2024-01-31,85000.00,0.00,January payroll,ENT01,USD
+GL008,2100,Salaries Payable,2024-01-31,0.00,85000.00,January payroll,ENT01,USD
+GL009,4000,Revenue,2024-02-05,0.00,88.00,Sales order ORD007,ENT01,USD
+GL010,1200,Accounts Receivable,2024-02-05,88.00,0.00,Sales order ORD007,ENT01,USD
+GL011,6200,Rent Expense,2024-02-01,12000.00,0.00,February office rent,ENT01,USD
+GL012,1000,Cash,2024-02-01,0.00,12000.00,February office rent,ENT01,USD
+GL013,4000,Revenue,2024-02-14,0.00,67.80,Sales order ORD005,ENT02,USD
+GL014,4000,Revenue,2024-01-25,0.00,312.45,Sales order ORD006,ENT01,EUR
+GL015,6300,Utilities Expense,2024-02-15,3500.00,0.00,February utilities,ENT01,USD
+GL016,1000,Cash,2024-02-15,0.00,3500.00,February utilities,ENT01,USD
+GL017,4000,Revenue,2024-03-10,0.00,520.00,Sales order ORD009,ENT02,USD
+GL018,1200,Accounts Receivable,2024-03-10,520.00,0.00,Sales order ORD009,ENT02,USD
+GL019,6100,Salaries Expense,2024-02-29,85000.00,0.00,February payroll,ENT01,USD
+GL020,2100,Salaries Payable,2024-02-29,0.00,85000.00,February payroll,ENT01,USD
+GL021,4000,Revenue,2024-03-05,0.00,680.00,Sales order ORD012,ENT01,GBP
+GL022,5000,Cost of Goods Sold,2024-02-28,220.00,0.00,COGS for February batch,ENT01,USD
+GL023,1300,Inventory,2024-02-28,0.00,220.00,COGS for February batch,ENT01,USD
+GL024,6400,Marketing Expense,2024-03-01,25000.00,0.00,Q1 marketing campaign,ENT02,USD
+GL025,1000,Cash,2024-03-01,0.00,25000.00,Q1 marketing campaign,ENT02,USD

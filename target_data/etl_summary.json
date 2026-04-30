@@ -1,0 +1,310 @@
+{
+  "batch_id": "AUTO",
+  "timestamp": "2026-04-30T13:46:25.317202",
+  "total_mappings": 50,
+  "success": 50,
+  "failed": 0,
+  "skipped": 0,
+  "results": [
+    {
+      "mapping": "m_customer_load",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 4.6
+    },
+    {
+      "mapping": "m_customer_deduplicate",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.7
+    },
+    {
+      "mapping": "m_customer_validate",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 3.7
+    },
+    {
+      "mapping": "m_customer_scd2",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.7
+    },
+    {
+      "mapping": "m_customer_address_normalize",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.9
+    },
+    {
+      "mapping": "m_customer_segment",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 8.2
+    },
+    {
+      "mapping": "m_customer_merge",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 4.6
+    },
+    {
+      "mapping": "m_customer_privacy_mask",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.9
+    },
+    {
+      "mapping": "m_customer_lifetime_value",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 16.0
+    },
+    {
+      "mapping": "m_customer_churn_flag",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 6.5
+    },
+    {
+      "mapping": "m_sales_order_load",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.2
+    },
+    {
+      "mapping": "m_sales_order_validate",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 3.5
+    },
+    {
+      "mapping": "m_sales_line_item_load",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 2.1
+    },
+    {
+      "mapping": "m_sales_discount_calc",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 3.1
+    },
+    {
+      "mapping": "m_sales_tax_calc",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.9
+    },
+    {
+      "mapping": "m_sales_commission_calc",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.3
+    },
+    {
+      "mapping": "m_sales_returns_process",
+      "status": "success",
+      "rows": 15,
+      "duration_ms": 2.3
+    },
+    {
+      "mapping": "m_sales_revenue_aggregate",
+      "status": "success",
+      "rows": 10,
+      "duration_ms": 6.0
+    },
+    {
+      "mapping": "m_sales_forecast_load",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 1.8
+    },
+    {
+      "mapping": "m_sales_pipeline_status",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.8
+    },
+    {
+      "mapping": "m_product_catalog_load",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.1
+    },
+    {
+      "mapping": "m_product_category_hierarchy",
+      "status": "success",
+      "rows": 15,
+      "duration_ms": 2.8
+    },
+    {
+      "mapping": "m_product_price_history",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 3.1
+    },
+    {
+      "mapping": "m_product_inventory_load",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 2.0
+    },
+    {
+      "mapping": "m_product_inventory_alert",
+      "status": "success",
+      "rows": 4,
+      "duration_ms": 3.0
+    },
+    {
+      "mapping": "m_product_supplier_map",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 3.8
+    },
+    {
+      "mapping": "m_product_bundle_create",
+      "status": "success",
+      "rows": 3,
+      "duration_ms": 3.7
+    },
+    {
+      "mapping": "m_product_review_sentiment",
+      "status": "success",
+      "rows": 16,
+      "duration_ms": 5.0
+    },
+    {
+      "mapping": "m_product_lifecycle_stage",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 7.1
+    },
+    {
+      "mapping": "m_product_recommendation",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 4.7
+    },
+    {
+      "mapping": "m_finance_gl_load",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 2.1
+    },
+    {
+      "mapping": "m_finance_ap_load",
+      "status": "success",
+      "rows": 15,
+      "duration_ms": 2.0
+    },
+    {
+      "mapping": "m_finance_ar_load",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.1
+    },
+    {
+      "mapping": "m_finance_journal_validate",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 3.0
+    },
+    {
+      "mapping": "m_finance_currency_convert",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 5.3
+    },
+    {
+      "mapping": "m_finance_budget_variance",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.8
+    },
+    {
+      "mapping": "m_finance_expense_categorize",
+      "status": "success",
+      "rows": 11,
+      "duration_ms": 2.7
+    },
+    {
+      "mapping": "m_finance_revenue_recognize",
+      "status": "success",
+      "rows": 7,
+      "duration_ms": 3.6
+    },
+    {
+      "mapping": "m_finance_consolidation",
+      "status": "success",
+      "rows": 10,
+      "duration_ms": 5.3
+    },
+    {
+      "mapping": "m_finance_audit_trail",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 3.3
+    },
+    {
+      "mapping": "m_hr_employee_load",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.1
+    },
+    {
+      "mapping": "m_hr_payroll_calc",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 3.0
+    },
+    {
+      "mapping": "m_hr_attendance_load",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 2.0
+    },
+    {
+      "mapping": "m_hr_performance_score",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.7
+    },
+    {
+      "mapping": "m_hr_turnover_analysis",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 10.2
+    },
+    {
+      "mapping": "m_ops_shipping_load",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.4
+    },
+    {
+      "mapping": "m_ops_delivery_tracking",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 4.2
+    },
+    {
+      "mapping": "m_ops_warehouse_inventory",
+      "status": "success",
+      "rows": 25,
+      "duration_ms": 3.8
+    },
+    {
+      "mapping": "m_ops_quality_metrics",
+      "status": "success",
+      "rows": 20,
+      "duration_ms": 2.7
+    },
+    {
+      "mapping": "m_ops_vendor_scorecard",
+      "status": "success",
+      "rows": 10,
+      "duration_ms": 2.6
+    }
+  ]
+}
