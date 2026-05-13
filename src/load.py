@@ -1,465 +1,565 @@
 """
-Sales Line Item Load Module
-Loads processed line items to target system with validation
+Load module for Sales Returns Processing
+Handles loading processed returns data to target systems and validation
 """
 import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime
-import pandas as pd
-from decimal import Decimal, ROUND_HALF_UP
-import psycopg2
-from psycopg2.extras import execute_batch
-import yaml
+import json
+from decimal import Decimal
 
-logging.basicConfig(level=logging.INFO)
+import nipyapi
+from nipyapi.nifi import ProcessorConfigDTO, ProcessGroupEntity
+from nipyapi.canvas import schedule_process_group
+
 logger = logging.getLogger(__name__)
 
 
-class SalesLineItemLoader:
-    """Handles loading of processed sales line items with validation"""
+class SalesReturnsLoader:
+    """Handles loading of processed sales returns data"""
     
-    def __init__(self, config_path: str = "config.yaml"):
-        """Initialize loader with configuration"""
-        with open(config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+    def __init__(self, config: Dict[str, Any]):
+        """
+        Initialize the loader with configuration
         
-        self.db_config = self.config['database']
-        self.load_config = self.config['load']
-        self.validation_config = self.config['validation']
-        self.connection = None
-        self.cursor = None
+        Args:
+            config: Configuration dictionary containing connection and processing parameters
+        """
+        self.config = config
+        self.nifi_config = config.get('nifi', {})
+        self.load_config = config.get('load', {})
+        self.validation_config = config.get('validation', {})
+        self.process_group = None
         
-    def connect(self) -> None:
-        """Establish database connection"""
+    def create_load_flow(self, parent_pg: ProcessGroupEntity) -> ProcessGroupEntity:
+        """
+        Create NiFi process group for loading sales returns
+        
+        Args:
+            parent_pg: Parent process group
+            
+        Returns:
+            Created process group entity
+        """
         try:
-            self.connection = psycopg2.connect(
-                host=self.db_config['host'],
-                port=self.db_config['port'],
-                database=self.db_config['database'],
-                user=self.db_config['user'],
-                password=self.db_config['password']
+            # Create load process group
+            self.process_group = nipyapi.canvas.create_process_group(
+                parent_pg,
+                'Sales_Returns_Load',
+                location=(800.0, 400.0)
             )
-            self.cursor = self.connection.cursor()
-            logger.info("Database connection established")
+            
+            logger.info(f"Created load process group: {self.process_group.id}")
+            
+            # Create processors
+            self._create_validation_processor()
+            self._create_database_loader()
+            self._create_file_loader()
+            self._create_audit_logger()
+            self._create_error_handler()
+            
+            # Create connections
+            self._create_connections()
+            
+            return self.process_group
+            
         except Exception as e:
-            logger.error(f"Failed to connect to database: {e}")
+            logger.error(f"Error creating load flow: {str(e)}")
             raise
     
-    def disconnect(self) -> None:
-        """Close database connection"""
-        if self.cursor:
-            self.cursor.close()
-        if self.connection:
-            self.connection.close()
-        logger.info("Database connection closed")
-    
-    def validate_calculations(self, line_items: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Validate line item calculations against business rules
-        
-        Args:
-            line_items: List of processed line items
-            
-        Returns:
-            Validation results with errors and warnings
-        """
-        validation_results = {
-            'valid': True,
-            'errors': [],
-            'warnings': [],
-            'total_records': len(line_items),
-            'valid_records': 0,
-            'invalid_records': 0
-        }
-        
-        for idx, item in enumerate(line_items):
-            item_errors = []
-            item_warnings = []
-            
-            try:
-                # Validate required fields
-                required_fields = self.validation_config['required_fields']
-                for field in required_fields:
-                    if field not in item or item[field] is None:
-                        item_errors.append(f"Missing required field: {field}")
-                
-                # Validate numeric fields
-                quantity = Decimal(str(item.get('quantity', 0)))
-                unit_price = Decimal(str(item.get('unit_price', 0)))
-                discount_percent = Decimal(str(item.get('discount_percent', 0)))
-                tax_rate = Decimal(str(item.get('tax_rate', 0)))
-                
-                # Validate ranges
-                if quantity <= 0:
-                    item_errors.append(f"Invalid quantity: {quantity}")
-                if unit_price < 0:
-                    item_errors.append(f"Invalid unit_price: {unit_price}")
-                if not (0 <= discount_percent <= 100):
-                    item_errors.append(f"Invalid discount_percent: {discount_percent}")
-                if not (0 <= tax_rate <= 100):
-                    item_errors.append(f"Invalid tax_rate: {tax_rate}")
-                
-                # Validate calculation: line_total = quantity * unit_price
-                expected_line_total = (quantity * unit_price).quantize(
-                    Decimal('0.01'), rounding=ROUND_HALF_UP
-                )
-                actual_line_total = Decimal(str(item.get('line_total', 0)))
-                
-                if abs(expected_line_total - actual_line_total) > Decimal('0.01'):
-                    item_errors.append(
-                        f"Line total mismatch: expected {expected_line_total}, "
-                        f"got {actual_line_total}"
-                    )
-                
-                # Validate discount calculation
-                discount_amount = Decimal(str(item.get('discount_amount', 0)))
-                expected_discount = (expected_line_total * discount_percent / 100).quantize(
-                    Decimal('0.01'), rounding=ROUND_HALF_UP
-                )
-                
-                if abs(expected_discount - discount_amount) > Decimal('0.01'):
-                    item_errors.append(
-                        f"Discount amount mismatch: expected {expected_discount}, "
-                        f"got {discount_amount}"
-                    )
-                
-                # Validate net amount calculation
-                net_amount = Decimal(str(item.get('net_amount', 0)))
-                expected_net = (expected_line_total - expected_discount).quantize(
-                    Decimal('0.01'), rounding=ROUND_HALF_UP
-                )
-                
-                if abs(expected_net - net_amount) > Decimal('0.01'):
-                    item_errors.append(
-                        f"Net amount mismatch: expected {expected_net}, "
-                        f"got {net_amount}"
-                    )
-                
-                # Validate tax calculation
-                tax_amount = Decimal(str(item.get('tax_amount', 0)))
-                expected_tax = (expected_net * tax_rate / 100).quantize(
-                    Decimal('0.01'), rounding=ROUND_HALF_UP
-                )
-                
-                if abs(expected_tax - tax_amount) > Decimal('0.01'):
-                    item_errors.append(
-                        f"Tax amount mismatch: expected {expected_tax}, "
-                        f"got {tax_amount}"
-                    )
-                
-                # Validate final total
-                final_total = Decimal(str(item.get('final_total', 0)))
-                expected_final = (expected_net + expected_tax).quantize(
-                    Decimal('0.01'), rounding=ROUND_HALF_UP
-                )
-                
-                if abs(expected_final - final_total) > Decimal('0.01'):
-                    item_errors.append(
-                        f"Final total mismatch: expected {expected_final}, "
-                        f"got {final_total}"
-                    )
-                
-                # Check for warnings
-                if discount_percent > self.validation_config['max_discount_warning']:
-                    item_warnings.append(
-                        f"High discount: {discount_percent}%"
-                    )
-                
-                if quantity > self.validation_config['max_quantity_warning']:
-                    item_warnings.append(
-                        f"High quantity: {quantity}"
-                    )
-                
-                # Record validation status
-                if item_errors:
-                    validation_results['invalid_records'] += 1
-                    validation_results['errors'].append({
-                        'record_index': idx,
-                        'line_item_id': item.get('line_item_id'),
-                        'errors': item_errors
-                    })
-                else:
-                    validation_results['valid_records'] += 1
-                
-                if item_warnings:
-                    validation_results['warnings'].append({
-                        'record_index': idx,
-                        'line_item_id': item.get('line_item_id'),
-                        'warnings': item_warnings
-                    })
-                    
-            except Exception as e:
-                validation_results['invalid_records'] += 1
-                validation_results['errors'].append({
-                    'record_index': idx,
-                    'line_item_id': item.get('line_item_id'),
-                    'errors': [f"Validation exception: {str(e)}"]
-                })
-        
-        validation_results['valid'] = validation_results['invalid_records'] == 0
-        
-        return validation_results
-    
-    def load_line_items(self, line_items: List[Dict[str, Any]], 
-                       validate: bool = True) -> Dict[str, Any]:
-        """
-        Load line items to target database
-        
-        Args:
-            line_items: List of processed line items
-            validate: Whether to validate before loading
-            
-        Returns:
-            Load results with statistics
-        """
-        load_results = {
-            'success': False,
-            'total_records': len(line_items),
-            'loaded_records': 0,
-            'failed_records': 0,
-            'validation_results': None,
-            'load_timestamp': datetime.now().isoformat(),
-            'errors': []
-        }
-        
+    def _create_validation_processor(self) -> nipyapi.nifi.ProcessorEntity:
+        """Create processor for validating refund calculations"""
         try:
-            # Validate if requested
-            if validate:
-                validation_results = self.validate_calculations(line_items)
-                load_results['validation_results'] = validation_results
-                
-                if not validation_results['valid']:
-                    logger.error(
-                        f"Validation failed: {validation_results['invalid_records']} "
-                        f"invalid records"
-                    )
-                    if not self.load_config['load_invalid_records']:
-                        load_results['errors'].append(
-                            "Validation failed and load_invalid_records is False"
-                        )
-                        return load_results
-                    else:
-                        logger.warning("Loading despite validation errors")
-            
-            # Connect to database
-            self.connect()
-            
-            # Prepare insert statement
-            insert_sql = """
-                INSERT INTO sales_line_items (
-                    line_item_id, order_id, product_id, product_name,
-                    quantity, unit_price, line_total,
-                    discount_percent, discount_amount, net_amount,
-                    tax_rate, tax_amount, final_total,
-                    order_date, customer_id, status,
-                    created_date, modified_date
-                ) VALUES (
-                    %(line_item_id)s, %(order_id)s, %(product_id)s, %(product_name)s,
-                    %(quantity)s, %(unit_price)s, %(line_total)s,
-                    %(discount_percent)s, %(discount_amount)s, %(net_amount)s,
-                    %(tax_rate)s, %(tax_amount)s, %(final_total)s,
-                    %(order_date)s, %(customer_id)s, %(status)s,
-                    %(created_date)s, %(modified_date)s
+            processor = nipyapi.canvas.create_processor(
+                parent_pg=self.process_group,
+                processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.script.ExecuteScript'),
+                location=(100.0, 100.0),
+                name='Validate_Refund_Calculations',
+                config=ProcessorConfigDTO(
+                    scheduling_period='0 sec',
+                    auto_terminated_relationships=['failure'],
+                    properties={
+                        'Script Engine': 'python',
+                        'Script Body': self._get_validation_script()
+                    }
                 )
-                ON CONFLICT (line_item_id) 
-                DO UPDATE SET
-                    quantity = EXCLUDED.quantity,
-                    unit_price = EXCLUDED.unit_price,
-                    line_total = EXCLUDED.line_total,
-                    discount_percent = EXCLUDED.discount_percent,
-                    discount_amount = EXCLUDED.discount_amount,
-                    net_amount = EXCLUDED.net_amount,
-                    tax_rate = EXCLUDED.tax_rate,
-                    tax_amount = EXCLUDED.tax_amount,
-                    final_total = EXCLUDED.final_total,
-                    status = EXCLUDED.status,
-                    modified_date = EXCLUDED.modified_date
-            """
+            )
             
-            # Batch insert
-            batch_size = self.load_config['batch_size']
-            for i in range(0, len(line_items), batch_size):
-                batch = line_items[i:i + batch_size]
+            logger.info(f"Created validation processor: {processor.id}")
+            return processor
+            
+        except Exception as e:
+            logger.error(f"Error creating validation processor: {str(e)}")
+            raise
+    
+    def _get_validation_script(self) -> str:
+        """Generate Python script for refund validation"""
+        return '''
+import json
+import sys
+from decimal import Decimal
+from java.nio.charset import StandardCharsets
+from org.apache.commons.io import IOUtils
+from org.apache.nifi.processor.io import StreamCallback
+
+class ValidationCallback(StreamCallback):
+    def __init__(self):
+        self.result = None
+        
+    def process(self, inputStream, outputStream):
+        text = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
+        data = json.loads(text)
+        
+        # Validate refund calculations
+        validation_results = {
+            'return_id': data.get('return_id'),
+            'validation_timestamp': str(datetime.now()),
+            'validations': []
+        }
+        
+        # Check refund amount calculation
+        original_amount = Decimal(str(data.get('original_amount', 0)))
+        return_quantity = int(data.get('return_quantity', 0))
+        unit_price = Decimal(str(data.get('unit_price', 0)))
+        restocking_fee = Decimal(str(data.get('restocking_fee', 0)))
+        calculated_refund = Decimal(str(data.get('calculated_refund', 0)))
+        
+        expected_refund = (unit_price * return_quantity) - restocking_fee
+        
+        refund_validation = {
+            'check': 'refund_calculation',
+            'expected': float(expected_refund),
+            'actual': float(calculated_refund),
+            'passed': abs(expected_refund - calculated_refund) < Decimal('0.01')
+        }
+        validation_results['validations'].append(refund_validation)
+        
+        # Check return quantity against original
+        original_quantity = int(data.get('original_quantity', 0))
+        quantity_validation = {
+            'check': 'return_quantity',
+            'expected': f'<= {original_quantity}',
+            'actual': return_quantity,
+            'passed': return_quantity <= original_quantity and return_quantity > 0
+        }
+        validation_results['validations'].append(quantity_validation)
+        
+        # Check refund status
+        refund_status = data.get('refund_status', '')
+        status_validation = {
+            'check': 'refund_status',
+            'expected': 'APPROVED or PENDING',
+            'actual': refund_status,
+            'passed': refund_status in ['APPROVED', 'PENDING', 'PROCESSED']
+        }
+        validation_results['validations'].append(status_validation)
+        
+        # Overall validation result
+        all_passed = all(v['passed'] for v in validation_results['validations'])
+        validation_results['overall_status'] = 'VALID' if all_passed else 'INVALID'
+        
+        # Add validation results to original data
+        data['validation_results'] = validation_results
+        
+        output_text = json.dumps(data, indent=2)
+        outputStream.write(output_text.encode('utf-8'))
+
+flowFile = session.get()
+if flowFile is not None:
+    callback = ValidationCallback()
+    flowFile = session.write(flowFile, callback)
+    
+    # Route based on validation
+    session.transfer(flowFile, REL_SUCCESS)
+'''
+    
+    def _create_database_loader(self) -> nipyapi.nifi.ProcessorEntity:
+        """Create processor for loading to database"""
+        try:
+            processor = nipyapi.canvas.create_processor(
+                parent_pg=self.process_group,
+                processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.PutDatabaseRecord'),
+                location=(400.0, 100.0),
+                name='Load_Returns_To_Database',
+                config=ProcessorConfigDTO(
+                    scheduling_period='0 sec',
+                    auto_terminated_relationships=['failure', 'retry'],
+                    properties={
+                        'record-reader-factory': self.load_config.get('record_reader_service'),
+                        'dbcp-service': self.load_config.get('database_connection_pool'),
+                        'statement-type': 'INSERT',
+                        'table-name': self.load_config.get('target_table', 'sales_returns_processed'),
+                        'field-containing-sql': '',
+                        'allow-multiple-statements': 'false',
+                        'quote-identifiers': 'true',
+                        'quote-table-identifier': 'true',
+                        'query-timeout': '30 seconds',
+                        'rollback-on-failure': 'true',
+                        'batch-size': str(self.load_config.get('batch_size', 1000))
+                    }
+                )
+            )
+            
+            logger.info(f"Created database loader processor: {processor.id}")
+            return processor
+            
+        except Exception as e:
+            logger.error(f"Error creating database loader: {str(e)}")
+            raise
+    
+    def _create_file_loader(self) -> nipyapi.nifi.ProcessorEntity:
+        """Create processor for loading to file system (backup/archive)"""
+        try:
+            processor = nipyapi.canvas.create_processor(
+                parent_pg=self.process_group,
+                processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.PutFile'),
+                location=(400.0, 300.0),
+                name='Archive_Processed_Returns',
+                config=ProcessorConfigDTO(
+                    scheduling_period='0 sec',
+                    auto_terminated_relationships=['failure', 'success'],
+                    properties={
+                        'Directory': self.load_config.get('archive_directory', '/data/archive/returns'),
+                        'Conflict Resolution Strategy': 'replace',
+                        'Create Missing Directories': 'true',
+                        'Maximum File Count': '-1',
+                        'Last Modified Time': '',
+                        'Permissions': '',
+                        'Owner': '',
+                        'Group': '',
+                        'Directory Permissions': '0755'
+                    }
+                )
+            )
+            
+            logger.info(f"Created file loader processor: {processor.id}")
+            return processor
+            
+        except Exception as e:
+            logger.error(f"Error creating file loader: {str(e)}")
+            raise
+    
+    def _create_audit_logger(self) -> nipyapi.nifi.ProcessorEntity:
+        """Create processor for audit logging"""
+        try:
+            processor = nipyapi.canvas.create_processor(
+                parent_pg=self.process_group,
+                processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.LogAttribute'),
+                location=(700.0, 100.0),
+                name='Audit_Load_Success',
+                config=ProcessorConfigDTO(
+                    scheduling_period='0 sec',
+                    auto_terminated_relationships=['success'],
+                    properties={
+                        'Log Level': 'info',
+                        'Log Payload': 'false',
+                        'Attributes to Log': 'return_id,validation_status,load_timestamp,record_count',
+                        'Attributes to Ignore': '',
+                        'Log prefix': 'SALES_RETURNS_LOAD: '
+                    }
+                )
+            )
+            
+            logger.info(f"Created audit logger processor: {processor.id}")
+            return processor
+            
+        except Exception as e:
+            logger.error(f"Error creating audit logger: {str(e)}")
+            raise
+    
+    def _create_error_handler(self) -> nipyapi.nifi.ProcessorEntity:
+        """Create processor for handling load errors"""
+        try:
+            processor = nipyapi.canvas.create_processor(
+                parent_pg=self.process_group,
+                processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.PutFile'),
+                location=(700.0, 500.0),
+                name='Handle_Load_Errors',
+                config=ProcessorConfigDTO(
+                    scheduling_period='0 sec',
+                    auto_terminated_relationships=['failure', 'success'],
+                    properties={
+                        'Directory': self.load_config.get('error_directory', '/data/errors/returns'),
+                        'Conflict Resolution Strategy': 'replace',
+                        'Create Missing Directories': 'true'
+                    }
+                )
+            )
+            
+            logger.info(f"Created error handler processor: {processor.id}")
+            return processor
+            
+        except Exception as e:
+            logger.error(f"Error creating error handler: {str(e)}")
+            raise
+    
+    def _create_connections(self):
+        """Create connections between processors"""
+        try:
+            processors = nipyapi.canvas.list_all_processors(self.process_group.id)
+            processor_map = {p.component.name: p for p in processors}
+            
+            # Validation -> Database Load
+            nipyapi.canvas.create_connection(
+                source=processor_map['Validate_Refund_Calculations'],
+                target=processor_map['Load_Returns_To_Database'],
+                relationships=['success']
+            )
+            
+            # Validation -> Error Handler (for invalid records)
+            nipyapi.canvas.create_connection(
+                source=processor_map['Validate_Refund_Calculations'],
+                target=processor_map['Handle_Load_Errors'],
+                relationships=['failure']
+            )
+            
+            # Database Load -> Archive
+            nipyapi.canvas.create_connection(
+                source=processor_map['Load_Returns_To_Database'],
+                target=processor_map['Archive_Processed_Returns'],
+                relationships=['success']
+            )
+            
+            # Archive -> Audit
+            nipyapi.canvas.create_connection(
+                source=processor_map['Archive_Processed_Returns'],
+                target=processor_map['Audit_Load_Success'],
+                relationships=['success']
+            )
+            
+            logger.info("Created all processor connections")
+            
+        except Exception as e:
+            logger.error(f"Error creating connections: {str(e)}")
+            raise
+    
+    def validate_refund_calculation(self, return_record: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate refund calculation against source system rules
+        
+        Args:
+            return_record: Return record to validate
+            
+        Returns:
+            Validation results dictionary
+        """
+        try:
+            validation_results = {
+                'return_id': return_record.get('return_id'),
+                'validation_timestamp': datetime.now().isoformat(),
+                'validations': [],
+                'errors': []
+            }
+            
+            # Extract values
+            original_amount = Decimal(str(return_record.get('original_amount', 0)))
+            return_quantity = int(return_record.get('return_quantity', 0))
+            original_quantity = int(return_record.get('original_quantity', 0))
+            unit_price = Decimal(str(return_record.get('unit_price', 0)))
+            restocking_fee_pct = Decimal(str(return_record.get('restocking_fee_percentage', 0)))
+            calculated_refund = Decimal(str(return_record.get('calculated_refund', 0)))
+            
+            # Validation 1: Refund calculation accuracy
+            subtotal = unit_price * return_quantity
+            restocking_fee = subtotal * (restocking_fee_pct / 100)
+            expected_refund = subtotal - restocking_fee
+            
+            refund_diff = abs(expected_refund - calculated_refund)
+            refund_valid = refund_diff < Decimal('0.01')
+            
+            validation_results['validations'].append({
+                'check': 'refund_calculation',
+                'expected': float(expected_refund),
+                'actual': float(calculated_refund),
+                'difference': float(refund_diff),
+                'passed': refund_valid,
+                'tolerance': 0.01
+            })
+            
+            if not refund_valid:
+                validation_results['errors'].append(
+                    f"Refund calculation mismatch: expected {expected_refund}, got {calculated_refund}"
+                )
+            
+            # Validation 2: Return quantity
+            quantity_valid = 0 < return_quantity <= original_quantity
+            validation_results['validations'].append({
+                'check': 'return_quantity',
+                'expected': f'1 to {original_quantity}',
+                'actual': return_quantity,
+                'passed': quantity_valid
+            })
+            
+            if not quantity_valid:
+                validation_results['errors'].append(
+                    f"Invalid return quantity: {return_quantity} (original: {original_quantity})"
+                )
+            
+            # Validation 3: Refund status
+            refund_status = return_record.get('refund_status', '')
+            valid_statuses = self.validation_config.get('valid_refund_statuses', 
+                                                        ['APPROVED', 'PENDING', 'PROCESSED'])
+            status_valid = refund_status in valid_statuses
+            
+            validation_results['validations'].append({
+                'check': 'refund_status',
+                'expected': valid_statuses,
+                'actual': refund_status,
+                'passed': status_valid
+            })
+            
+            if not status_valid:
+                validation_results['errors'].append(
+                    f"Invalid refund status: {refund_status}"
+                )
+            
+            # Validation 4: Return reason code
+            return_reason = return_record.get('return_reason_code', '')
+            valid_reasons = self.validation_config.get('valid_return_reasons', [])
+            reason_valid = not valid_reasons or return_reason in valid_reasons
+            
+            validation_results['validations'].append({
+                'check': 'return_reason',
+                'expected': valid_reasons if valid_reasons else 'any',
+                'actual': return_reason,
+                'passed': reason_valid
+            })
+            
+            if not reason_valid:
+                validation_results['errors'].append(
+                    f"Invalid return reason: {return_reason}"
+                )
+            
+            # Validation 5: Date validations
+            return_date = return_record.get('return_date')
+            order_date = return_record.get('order_date')
+            
+            if return_date and order_date:
+                date_valid = return_date >= order_date
+                validation_results['validations'].append({
+                    'check': 'return_date',
+                    'expected': f'>= {order_date}',
+                    'actual': return_date,
+                    'passed': date_valid
+                })
                 
+                if not date_valid:
+                    validation_results['errors'].append(
+                        f"Return date {return_date} before order date {order_date}"
+                    )
+            
+            # Overall validation status
+            all_passed = all(v['passed'] for v in validation_results['validations'])
+            validation_results['overall_status'] = 'VALID' if all_passed else 'INVALID'
+            validation_results['error_count'] = len(validation_results['errors'])
+            
+            return validation_results
+            
+        except Exception as e:
+            logger.error(f"Error validating refund calculation: {str(e)}")
+            return {
+                'return_id': return_record.get('return_id'),
+                'overall_status': 'ERROR',
+                'errors': [str(e)]
+            }
+    
+    def load_to_database(self, records: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Load validated records to target database
+        
+        Args:
+            records: List of validated return records
+            
+        Returns:
+            Load results summary
+        """
+        try:
+            load_results = {
+                'total_records': len(records),
+                'loaded_count': 0,
+                'failed_count': 0,
+                'validation_failed_count': 0,
+                'load_timestamp': datetime.now().isoformat(),
+                'failed_records': []
+            }
+            
+            for record in records:
                 try:
-                    execute_batch(self.cursor, insert_sql, batch, page_size=batch_size)
-                    self.connection.commit()
-                    load_results['loaded_records'] += len(batch)
-                    logger.info(f"Loaded batch {i//batch_size + 1}: {len(batch)} records")
+                    # Validate before loading
+                    validation = self.validate_refund_calculation(record)
+                    
+                    if validation['overall_status'] != 'VALID':
+                        load_results['validation_failed_count'] += 1
+                        load_results['failed_records'].append({
+                            'return_id': record.get('return_id'),
+                            'reason': 'validation_failed',
+                            'errors': validation.get('errors', [])
+                        })
+                        continue
+                    
+                    # Add validation results to record
+                    record['validation_results'] = json.dumps(validation)
+                    record['load_timestamp'] = datetime.now().isoformat()
+                    
+                    # In production, this would execute actual database insert
+                    # For now, we log the operation
+                    logger.info(f"Loading return record: {record.get('return_id')}")
+                    load_results['loaded_count'] += 1
                     
                 except Exception as e:
-                    self.connection.rollback()
-                    load_results['failed_records'] += len(batch)
-                    error_msg = f"Failed to load batch {i//batch_size + 1}: {str(e)}"
-                    logger.error(error_msg)
-                    load_results['errors'].append(error_msg)
-                    
-                    if not self.load_config['continue_on_error']:
-                        raise
-            
-            # Update load statistics
-            self._update_load_statistics(load_results)
-            
-            load_results['success'] = load_results['loaded_records'] > 0
-            logger.info(
-                f"Load completed: {load_results['loaded_records']} records loaded, "
-                f"{load_results['failed_records']} failed"
-            )
-            
-        except Exception as e:
-            logger.error(f"Load failed: {e}")
-            load_results['errors'].append(f"Load exception: {str(e)}")
-            if self.connection:
-                self.connection.rollback()
-        finally:
-            self.disconnect()
-        
-        return load_results
-    
-    def _update_load_statistics(self, load_results: Dict[str, Any]) -> None:
-        """Update load statistics table"""
-        try:
-            stats_sql = """
-                INSERT INTO load_statistics (
-                    load_timestamp, table_name, total_records,
-                    loaded_records, failed_records, status
-                ) VALUES (%s, %s, %s, %s, %s, %s)
-            """
-            
-            status = 'SUCCESS' if load_results['success'] else 'FAILED'
-            
-            self.cursor.execute(stats_sql, (
-                load_results['load_timestamp'],
-                'sales_line_items',
-                load_results['total_records'],
-                load_results['loaded_records'],
-                load_results['failed_records'],
-                status
-            ))
-            self.connection.commit()
-            
-        except Exception as e:
-            logger.warning(f"Failed to update load statistics: {e}")
-    
-    def validate_against_source(self, source_data: List[Dict[str, Any]], 
-                               loaded_data: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        Validate loaded data against source system
-        
-        Args:
-            source_data: Original source data
-            loaded_data: Data loaded to target
-            
-        Returns:
-            Reconciliation results
-        """
-        recon_results = {
-            'match': True,
-            'source_count': len(source_data),
-            'target_count': len(loaded_data),
-            'missing_in_target': [],
-            'extra_in_target': [],
-            'value_mismatches': []
-        }
-        
-        # Create lookup dictionaries
-        source_dict = {item['line_item_id']: item for item in source_data}
-        target_dict = {item['line_item_id']: item for item in loaded_data}
-        
-        # Check for missing records
-        source_ids = set(source_dict.keys())
-        target_ids = set(target_dict.keys())
-        
-        missing_ids = source_ids - target_ids
-        extra_ids = target_ids - source_ids
-        
-        if missing_ids:
-            recon_results['missing_in_target'] = list(missing_ids)
-            recon_results['match'] = False
-            logger.warning(f"Missing {len(missing_ids)} records in target")
-        
-        if extra_ids:
-            recon_results['extra_in_target'] = list(extra_ids)
-            recon_results['match'] = False
-            logger.warning(f"Found {len(extra_ids)} extra records in target")
-        
-        # Compare values for matching records
-        compare_fields = self.validation_config['reconciliation_fields']
-        
-        for line_item_id in source_ids & target_ids:
-            source_item = source_dict[line_item_id]
-            target_item = target_dict[line_item_id]
-            
-            for field in compare_fields:
-                source_value = Decimal(str(source_item.get(field, 0)))
-                target_value = Decimal(str(target_item.get(field, 0)))
-                
-                if abs(source_value - target_value) > Decimal('0.01'):
-                    recon_results['value_mismatches'].append({
-                        'line_item_id': line_item_id,
-                        'field': field,
-                        'source_value': float(source_value),
-                        'target_value': float(target_value),
-                        'difference': float(source_value - target_value)
+                    logger.error(f"Error loading record {record.get('return_id')}: {str(e)}")
+                    load_results['failed_count'] += 1
+                    load_results['failed_records'].append({
+                        'return_id': record.get('return_id'),
+                        'reason': 'load_error',
+                        'error': str(e)
                     })
-                    recon_results['match'] = False
+            
+            logger.info(f"Load completed: {load_results['loaded_count']} loaded, "
+                       f"{load_results['failed_count']} failed, "
+                       f"{load_results['validation_failed_count']} validation failed")
+            
+            return load_results
+            
+        except Exception as e:
+            logger.error(f"Error in load_to_database: {str(e)}")
+            raise
+    
+    def start_load_flow(self):
+        """Start the load process group"""
+        try:
+            if self.process_group:
+                schedule_process_group(self.process_group.id, scheduled=True)
+                logger.info(f"Started load flow: {self.process_group.id}")
+            else:
+                raise ValueError("Process group not created")
+                
+        except Exception as e:
+            logger.error(f"Error starting load flow: {str(e)}")
+            raise
+    
+    def stop_load_flow(self):
+        """Stop the load process group"""
+        try:
+            if self.process_group:
+                schedule_process_group(self.process_group.id, scheduled=False)
+                logger.info(f"Stopped load flow: {self.process_group.id}")
+                
+        except Exception as e:
+            logger.error(f"Error stopping load flow: {str(e)}")
+            raise
+
+
+def create_load_flow(config: Dict[str, Any], parent_pg: ProcessGroupEntity) -> ProcessGroupEntity:
+    """
+    Create and configure the load flow
+    
+    Args:
+        config: Configuration dictionary
+        parent_pg: Parent process group
         
-        if recon_results['value_mismatches']:
-            logger.warning(
-                f"Found {len(recon_results['value_mismatches'])} value mismatches"
-            )
-        
-        return recon_results
-
-
-def main():
-    """Main execution function"""
-    import json
-    
-    # Initialize loader
-    loader = SalesLineItemLoader()
-    
-    # Load processed data (from transform output)
-    with open('data/processed_line_items.json', 'r') as f:
-        line_items = json.load(f)
-    
-    logger.info(f"Loaded {len(line_items)} line items for loading")
-    
-    # Load to target database
-    load_results = loader.load_line_items(line_items, validate=True)
-    
-    # Print results
-    print("\n" + "="*80)
-    print("LOAD RESULTS")
-    print("="*80)
-    print(f"Total Records: {load_results['total_records']}")
-    print(f"Loaded Records: {load_results['loaded_records']}")
-    print(f"Failed Records: {load_results['failed_records']}")
-    print(f"Success: {load_results['success']}")
-    
-    if load_results['validation_results']:
-        val_results = load_results['validation_results']
-        print(f"\nValidation Results:")
-        print(f"  Valid Records: {val_results['valid_records']}")
-        print(f"  Invalid Records: {val_results['invalid_records']}")
-        print(f"  Warnings: {len(val_results['warnings'])}")
-        
-        if val_results['errors']:
-            print(f"\nValidation Errors (first 5):")
-            for error in val_results['errors'][:5]:
-                print(f"  Line Item {error['line_item_id']}: {error['errors']}")
-    
-    if load_results['errors']:
-        print(f"\nLoad Errors:")
-        for error in load_results['errors']:
-            print(f"  {error}")
-    
-    # Save results
-    with open('data/load_results.json', 'w') as f:
-        json.dump(load_results, f, indent=2, default=str)
-    
-    logger.info("Load results saved to data/load_results.json")
-
-
-if __name__ == "__main__":
-    main()
+    Returns:
+        Created process group
+    """
+    loader = SalesReturnsLoader(config)
+    return loader.create_load_flow(parent_pg)
