@@ -1,422 +1,510 @@
 """
-Validation module for address data quality checks.
-Implements completeness, format, and referential integrity validation.
+Transaction validation module.
+Implements comprehensive validation rules for transaction data.
 """
 
 import logging
+from typing import Dict, List, Optional, Any, Tuple
+from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 import re
-from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
-from enum import Enum
 import nipyapi
-from nipyapi.nifi import ProcessorConfigDTO, ProcessGroupEntity
+from nipyapi.nifi import ProcessorConfigDTO
 
 logger = logging.getLogger(__name__)
 
 
-class ValidationResult(Enum):
-    """Validation result types."""
-    VALID = "valid"
-    INVALID = "invalid"
-    INCOMPLETE = "incomplete"
-    ORPHANED = "orphaned"
-
-
-@dataclass
-class ValidationError:
-    """Represents a validation error."""
-    field: str
-    error_type: str
-    message: str
-    value: Optional[str] = None
-
-
-class AddressValidator:
-    """Validates address data for completeness and correctness."""
+class TransactionValidator:
+    """Validate transaction data against business rules."""
     
-    def __init__(self, config: Dict[str, Any], canvas: Any):
+    def __init__(self, config: Dict[str, Any]):
         """
         Initialize the validator.
         
         Args:
             config: Configuration dictionary
-            canvas: NiFi canvas object
         """
         self.config = config
-        self.canvas = canvas
-        self.validation_config = config.get('validation', {})
-        self.completeness_config = self.validation_config.get('address_completeness', {})
+        self.validation_config = config['validation']
+        self.validation_errors = []
         
-    def create_validation_flow(self, process_group: ProcessGroupEntity) -> Dict[str, Any]:
+    def create_validation_processors(
+        self,
+        process_group_id: str,
+        canvas: nipyapi.nifi.ProcessGroupFlowEntity
+    ) -> Dict[str, Any]:
         """
-        Create the validation flow in NiFi.
+        Create NiFi processors for validation.
         
         Args:
-            process_group: Parent process group
+            process_group_id: Parent process group ID
+            canvas: NiFi canvas object
             
         Returns:
-            Dictionary containing processor references
+            Dictionary of created processors
         """
-        logger.info("Creating validation flow for address data")
-        
         processors = {}
         
         try:
-            # Create referential integrity checker
-            processors['check_referential_integrity'] = self._create_referential_integrity_checker(
-                process_group,
-                position={'x': 700, 'y': 200}
+            # Create ValidateRecord processor
+            validate_record = self._create_validate_record_processor(
+                process_group_id=process_group_id,
+                name="Validate_Transaction_Schema",
+                position=(700, 100)
             )
+            processors['validate_record'] = validate_record
             
-            # Create address completeness validator
-            processors['validate_completeness'] = self._create_completeness_validator(
-                process_group,
-                position={'x': 1000, 'y': 200}
+            # Create ExecuteScript processor for custom validation
+            custom_validation = self._create_custom_validation_processor(
+                process_group_id=process_group_id,
+                name="Custom_Business_Rules_Validation",
+                position=(900, 100)
             )
+            processors['custom_validation'] = custom_validation
             
-            # Create format validators
-            processors['validate_zip_code'] = self._create_format_validator(
-                process_group,
-                "Validate Zip Code Format",
-                'zip_code',
-                position={'x': 1300, 'y': 100}
+            # Create RouteOnAttribute for validation routing
+            route_validation = self._create_route_validation_processor(
+                process_group_id=process_group_id,
+                name="Route_Validation_Results",
+                position=(1100, 100)
             )
+            processors['route_validation'] = route_validation
             
-            processors['validate_state'] = self._create_format_validator(
-                process_group,
-                "Validate State Code",
-                'state',
-                position={'x': 1300, 'y': 300}
+            # Create UpdateAttribute for validation metadata
+            update_validation_metadata = self._create_validation_metadata_processor(
+                process_group_id=process_group_id,
+                name="Update_Validation_Metadata",
+                position=(1300, 100)
             )
+            processors['update_validation_metadata'] = update_validation_metadata
             
-            processors['validate_country'] = self._create_format_validator(
-                process_group,
-                "Validate Country Code",
-                'country',
-                position={'x': 1300, 'y': 500}
-            )
-            
-            # Create route processor for validation results
-            processors['route_validation_results'] = self._create_route_processor(
-                process_group,
-                position={'x': 1600, 'y': 200}
-            )
-            
-            logger.info("Validation flow created successfully")
+            logger.info("Successfully created validation processors")
             return processors
             
         except Exception as e:
-            logger.error(f"Failed to create validation flow: {str(e)}")
+            logger.error(f"Error creating validation processors: {str(e)}")
             raise
     
-    def _create_referential_integrity_checker(
+    def _create_validate_record_processor(
         self,
-        process_group: ProcessGroupEntity,
-        position: Dict[str, int]
-    ) -> Any:
-        """Create processor to check referential integrity with customer master."""
-        
-        # Use LookupRecord processor to join with customer data
-        processor = nipyapi.canvas.create_processor(
-            parent_pg=process_group,
-            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.LookupRecord'),
-            location=(position['x'], position['y']),
-            name="Check Customer Reference",
-            config=ProcessorConfigDTO(
-                properties={
-                    'Record Reader': 'CSVReader',
-                    'Record Writer': 'CSVRecordSetWriter',
-                    'Lookup Service': 'DistributedMapCacheLookupService',
-                    'Result RecordPath': '/customer_exists',
-                    'Routing Strategy': 'Route to Property name',
-                    'Record Result Contents': 'Insert Entire Record',
-                    'customer_id': '/customer_id'
-                },
-                auto_terminated_relationships=[],
-                scheduling_period='0 sec',
-                scheduling_strategy='EVENT_DRIVEN'
-            )
-        )
-        
-        logger.info("Created referential integrity checker processor")
-        return processor
-    
-    def _create_completeness_validator(
-        self,
-        process_group: ProcessGroupEntity,
-        position: Dict[str, int]
-    ) -> Any:
-        """Create processor to validate address completeness."""
-        
-        required_fields = self.completeness_config.get('required_fields', [])
-        
-        # Build validation expression
-        validation_expressions = []
-        for field in required_fields:
-            validation_expressions.append(f"isNotEmpty(/{field})")
-        
-        validation_expr = " and ".join(validation_expressions)
-        
-        processor = nipyapi.canvas.create_processor(
-            parent_pg=process_group,
-            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.QueryRecord'),
-            location=(position['x'], position['y']),
-            name="Validate Address Completeness",
-            config=ProcessorConfigDTO(
-                properties={
-                    'Record Reader': 'CSVReader',
-                    'Record Writer': 'CSVRecordSetWriter',
-                    'complete': f"SELECT * FROM FLOWFILE WHERE {validation_expr}",
-                    'incomplete': f"SELECT * FROM FLOWFILE WHERE NOT ({validation_expr})",
-                    'Include Zero Record FlowFiles': 'false'
-                },
-                auto_terminated_relationships=[],
-                scheduling_period='0 sec',
-                scheduling_strategy='EVENT_DRIVEN'
-            )
-        )
-        
-        logger.info("Created completeness validator processor")
-        return processor
-    
-    def _create_format_validator(
-        self,
-        process_group: ProcessGroupEntity,
+        process_group_id: str,
         name: str,
-        field: str,
-        position: Dict[str, int]
-    ) -> Any:
-        """Create processor to validate field format."""
+        position: tuple
+    ) -> nipyapi.nifi.ProcessorEntity:
+        """Create a ValidateRecord processor."""
+        processor_config = ProcessorConfigDTO()
+        processor_config.properties = {
+            'Record Reader': 'CSVReader',
+            'Record Writer': 'CSVRecordSetWriter',
+            'Schema Access Strategy': 'schema-name',
+            'Allow Extra Fields': 'true',
+            'Strict Type Checking': 'true'
+        }
+        processor_config.auto_terminated_relationships = []
         
-        # Get validation patterns
-        patterns = self._get_validation_patterns(field)
-        
-        # Create UpdateRecord processor with validation logic
         processor = nipyapi.canvas.create_processor(
-            parent_pg=process_group,
-            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.UpdateRecord'),
-            location=(position['x'], position['y']),
+            parent_pg=nipyapi.canvas.get_process_group(process_group_id, 'id'),
+            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.ValidateRecord'),
+            location=(position[0], position[1]),
             name=name,
-            config=ProcessorConfigDTO(
-                properties={
-                    'Record Reader': 'CSVReader',
-                    'Record Writer': 'CSVRecordSetWriter',
-                    'Replacement Value Strategy': 'Record Path Value',
-                    f'/validation_{field}_result': self._build_validation_expression(field, patterns),
-                    f'/validation_{field}_error': f"concat('Invalid {field} format: ', /{field})"
-                },
-                auto_terminated_relationships=[],
-                scheduling_period='0 sec',
-                scheduling_strategy='EVENT_DRIVEN'
-            )
+            config=processor_config
         )
         
-        logger.info(f"Created format validator processor: {name}")
+        logger.info(f"Created ValidateRecord processor: {name}")
         return processor
     
-    def _get_validation_patterns(self, field: str) -> Dict[str, str]:
-        """Get validation patterns for a field."""
-        
-        if field == 'zip_code':
-            return self.completeness_config.get('zip_code_patterns', {})
-        elif field == 'state':
-            return {'codes': self.completeness_config.get('state_codes', {})}
-        elif field == 'country':
-            return {'codes': self.completeness_config.get('country_codes', [])}
-        
-        return {}
-    
-    def _build_validation_expression(self, field: str, patterns: Dict[str, Any]) -> str:
-        """Build RecordPath validation expression."""
-        
-        if field == 'zip_code':
-            # Build regex validation for zip codes based on country
-            conditions = []
-            for country, pattern in patterns.items():
-                conditions.append(
-                    f"(equals(/country, '{country}') and matches(/{field}, '{pattern}'))"
-                )
-            return f"if({' or '.join(conditions)}, 'VALID', 'INVALID')"
-        
-        elif field == 'state':
-            # Validate state codes
-            state_codes = patterns.get('codes', {})
-            all_codes = []
-            for country, codes in state_codes.items():
-                all_codes.extend(codes)
-            
-            codes_list = "', '".join(all_codes)
-            return f"if(contains(['{codes_list}'], /{field}), 'VALID', 'INVALID')"
-        
-        elif field == 'country':
-            # Validate country codes
-            codes = patterns.get('codes', [])
-            codes_list = "', '".join(codes)
-            return f"if(contains(['{codes_list}'], /{field}), 'VALID', 'INVALID')"
-        
-        return "'VALID'"
-    
-    def _create_route_processor(
+    def _create_custom_validation_processor(
         self,
-        process_group: ProcessGroupEntity,
-        position: Dict[str, int]
-    ) -> Any:
-        """Create processor to route records based on validation results."""
+        process_group_id: str,
+        name: str,
+        position: tuple
+    ) -> nipyapi.nifi.ProcessorEntity:
+        """Create an ExecuteScript processor for custom validation."""
+        validation_script = self._generate_validation_script()
+        
+        processor_config = ProcessorConfigDTO()
+        processor_config.properties = {
+            'Script Engine': 'python',
+            'Script Body': validation_script,
+            'Module Directory': '/opt/nifi/scripts/modules'
+        }
         
         processor = nipyapi.canvas.create_processor(
-            parent_pg=process_group,
-            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.RouteOnAttribute'),
-            location=(position['x'], position['y']),
-            name="Route Validation Results",
-            config=ProcessorConfigDTO(
-                properties={
-                    'Routing Strategy': 'Route to Property name',
-                    'valid': "${validation_zip_code_result:equals('VALID'):and("
-                            "${validation_state_result:equals('VALID')}):and("
-                            "${validation_country_result:equals('VALID')}):and("
-                            "${customer_exists:equals('true')})}",
-                    'invalid': "${validation_zip_code_result:equals('INVALID'):or("
-                              "${validation_state_result:equals('INVALID')}):or("
-                              "${validation_country_result:equals('INVALID')})}",
-                    'orphaned': "${customer_exists:equals('false')}"
-                },
-                auto_terminated_relationships=['unmatched'],
-                scheduling_period='0 sec',
-                scheduling_strategy='EVENT_DRIVEN'
-            )
+            parent_pg=nipyapi.canvas.get_process_group(process_group_id, 'id'),
+            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.script.ExecuteScript'),
+            location=(position[0], position[1]),
+            name=name,
+            config=processor_config
         )
         
-        logger.info("Created route processor for validation results")
+        logger.info(f"Created ExecuteScript processor: {name}")
         return processor
     
-    def validate_address_record(self, record: Dict[str, Any]) -> Tuple[ValidationResult, List[ValidationError]]:
+    def _create_route_validation_processor(
+        self,
+        process_group_id: str,
+        name: str,
+        position: tuple
+    ) -> nipyapi.nifi.ProcessorEntity:
+        """Create a RouteOnAttribute processor for validation routing."""
+        processor_config = ProcessorConfigDTO()
+        processor_config.properties = {
+            'Routing Strategy': 'Route to Property name',
+            'valid': '${validation.status:equals("VALID")}',
+            'invalid': '${validation.status:equals("INVALID")}',
+            'warning': '${validation.status:equals("WARNING")}'
+        }
+        
+        processor = nipyapi.canvas.create_processor(
+            parent_pg=nipyapi.canvas.get_process_group(process_group_id, 'id'),
+            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.RouteOnAttribute'),
+            location=(position[0], position[1]),
+            name=name,
+            config=processor_config
+        )
+        
+        logger.info(f"Created RouteOnAttribute processor: {name}")
+        return processor
+    
+    def _create_validation_metadata_processor(
+        self,
+        process_group_id: str,
+        name: str,
+        position: tuple
+    ) -> nipyapi.nifi.ProcessorEntity:
+        """Create an UpdateAttribute processor for validation metadata."""
+        processor_config = ProcessorConfigDTO()
+        processor_config.properties = {
+            'validation.timestamp': '${now():format("yyyy-MM-dd HH:mm:ss")}',
+            'validation.processor': name,
+            'validation.rules.applied': 'amount,date_range,type,status'
+        }
+        
+        processor = nipyapi.canvas.create_processor(
+            parent_pg=nipyapi.canvas.get_process_group(process_group_id, 'id'),
+            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.attributes.UpdateAttribute'),
+            location=(position[0], position[1]),
+            name=name,
+            config=processor_config
+        )
+        
+        logger.info(f"Created UpdateAttribute processor: {name}")
+        return processor
+    
+    def _generate_validation_script(self) -> str:
+        """Generate Python validation script for ExecuteScript processor."""
+        script = f"""
+import json
+import csv
+from datetime import datetime, timedelta
+from decimal import Decimal
+from io import StringIO
+from org.apache.commons.io import IOUtils
+from java.nio.charset import StandardCharsets
+from org.apache.nifi.processor.io import StreamCallback
+
+class ValidationCallback(StreamCallback):
+    def __init__(self):
+        self.validation_config = {json.dumps(self.validation_config)}
+        
+    def process(self, inputStream, outputStream):
+        text = IOUtils.toString(inputStream, StandardCharsets.UTF_8)
+        reader = csv.DictReader(StringIO(text))
+        
+        validated_records = []
+        validation_errors = []
+        
+        for record in reader:
+            is_valid, errors = self.validate_transaction(record)
+            
+            record['validation_status'] = 'VALID' if is_valid else 'INVALID'
+            record['validation_errors'] = '|'.join(errors) if errors else ''
+            record['validation_timestamp'] = datetime.now().isoformat()
+            
+            validated_records.append(record)
+            
+            if errors:
+                validation_errors.extend(errors)
+        
+        # Write validated records
+        output = StringIO()
+        if validated_records:
+            writer = csv.DictWriter(output, fieldnames=validated_records[0].keys())
+            writer.writeheader()
+            writer.writerows(validated_records)
+        
+        outputStream.write(output.getvalue().encode('utf-8'))
+        
+        # Set flowfile attributes
+        flowFile = session.get()
+        if flowFile:
+            flowFile = session.putAttribute(flowFile, 'validation.record.count', str(len(validated_records)))
+            flowFile = session.putAttribute(flowFile, 'validation.error.count', str(len(validation_errors)))
+            flowFile = session.putAttribute(flowFile, 'validation.status', 
+                'VALID' if not validation_errors else 'INVALID')
+    
+    def validate_transaction(self, record):
+        errors = []
+        
+        # Amount validation
+        amount_errors = self.validate_amount(record.get('amount'))
+        errors.extend(amount_errors)
+        
+        # Date validation
+        date_errors = self.validate_date(record.get('transaction_date'))
+        errors.extend(date_errors)
+        
+        # Type validation
+        type_errors = self.validate_type(record.get('transaction_type'))
+        errors.extend(type_errors)
+        
+        # Status validation
+        status_errors = self.validate_status(record.get('status'))
+        errors.extend(status_errors)
+        
+        return len(errors) == 0, errors
+    
+    def validate_amount(self, amount_str):
+        errors = []
+        config = self.validation_config['amount']
+        
+        try:
+            amount = Decimal(str(amount_str))
+            
+            if amount < Decimal(str(config['min_value'])):
+                errors.append(f"Amount {{amount}} below minimum {{config['min_value']}}")
+            
+            if amount > Decimal(str(config['max_value'])):
+                errors.append(f"Amount {{amount}} exceeds maximum {{config['max_value']}}")
+            
+            if not config['allow_negative'] and amount < 0:
+                errors.append(f"Negative amounts not allowed: {{amount}}")
+                
+        except Exception as e:
+            errors.append(f"Invalid amount format: {{amount_str}}")
+        
+        return errors
+    
+    def validate_date(self, date_str):
+        errors = []
+        config = self.validation_config['date_range']
+        
+        try:
+            trans_date = datetime.strptime(date_str, config['date_format'])
+            min_date = datetime.strptime(config['min_date'], config['date_format'])
+            max_date = datetime.now() + timedelta(days=config['max_date_offset_days'])
+            
+            if trans_date < min_date:
+                errors.append(f"Date {{date_str}} before minimum {{config['min_date']}}")
+            
+            if trans_date > max_date:
+                errors.append(f"Date {{date_str}} is in the future")
+                
+        except Exception as e:
+            errors.append(f"Invalid date format: {{date_str}}")
+        
+        return errors
+    
+    def validate_type(self, trans_type):
+        errors = []
+        allowed = self.validation_config['transaction_types']['allowed']
+        
+        if trans_type not in allowed:
+            errors.append(f"Invalid transaction type: {{trans_type}}")
+        
+        return errors
+    
+    def validate_status(self, status):
+        errors = []
+        allowed = self.validation_config['status_codes']['allowed']
+        
+        if status not in allowed:
+            errors.append(f"Invalid status code: {{status}}")
+        
+        return errors
+
+flowFile = session.get()
+if flowFile:
+    flowFile = session.write(flowFile, ValidationCallback())
+    session.transfer(flowFile, REL_SUCCESS)
+"""
+        return script
+    
+    def validate_transaction(self, transaction: Dict[str, Any]) -> Tuple[bool, List[str]]:
         """
-        Validate a single address record.
+        Validate a single transaction record.
         
         Args:
-            record: Address record dictionary
+            transaction: Transaction record
             
         Returns:
-            Tuple of (ValidationResult, List of ValidationErrors)
+            Tuple of (is_valid, list of error messages)
         """
         errors = []
         
-        # Check completeness
-        completeness_errors = self._validate_completeness(record)
-        errors.extend(completeness_errors)
+        # Amount validation
+        amount_errors = self.validate_amount(transaction.get('amount'))
+        errors.extend(amount_errors)
         
-        # Check format
-        format_errors = self._validate_formats(record)
-        errors.extend(format_errors)
+        # Date validation
+        date_errors = self.validate_date(transaction.get('transaction_date'))
+        errors.extend(date_errors)
         
-        # Determine overall result
-        if not errors:
-            return ValidationResult.VALID, []
-        elif any(e.error_type == 'missing_required' for e in errors):
-            return ValidationResult.INCOMPLETE, errors
-        else:
-            return ValidationResult.INVALID, errors
+        # Type validation
+        type_errors = self.validate_transaction_type(transaction.get('transaction_type'))
+        errors.extend(type_errors)
+        
+        # Status validation
+        status_errors = self.validate_status(transaction.get('status'))
+        errors.extend(status_errors)
+        
+        # Currency validation
+        currency_errors = self.validate_currency(transaction.get('currency'))
+        errors.extend(currency_errors)
+        
+        # ID validation
+        id_errors = self.validate_transaction_id(transaction.get('transaction_id'))
+        errors.extend(id_errors)
+        
+        is_valid = len(errors) == 0
+        
+        if not is_valid:
+            logger.warning(f"Transaction {transaction.get('transaction_id')} validation failed: {errors}")
+        
+        return is_valid, errors
     
-    def _validate_completeness(self, record: Dict[str, Any]) -> List[ValidationError]:
-        """Validate that required fields are present and non-empty."""
-        
+    def validate_amount(self, amount_str: str) -> List[str]:
+        """Validate transaction amount."""
         errors = []
-        required_fields = self.completeness_config.get('required_fields', [])
+        config = self.validation_config['amount']
         
-        for field in required_fields:
-            value = record.get(field)
-            if not value or (isinstance(value, str) and not value.strip()):
-                errors.append(ValidationError(
-                    field=field,
-                    error_type='missing_required',
-                    message=f"Required field '{field}' is missing or empty",
-                    value=value
-                ))
+        try:
+            amount = Decimal(str(amount_str))
+            
+            if amount < Decimal(str(config['min_value'])):
+                errors.append(f"Amount {amount} below minimum {config['min_value']}")
+            
+            if amount > Decimal(str(config['max_value'])):
+                errors.append(f"Amount {amount} exceeds maximum {config['max_value']}")
+            
+            if not config['allow_negative'] and amount < 0:
+                errors.append(f"Negative amounts not allowed: {amount}")
+            
+            # Check precision
+            decimal_places = abs(amount.as_tuple().exponent)
+            if decimal_places > config['precision']:
+                errors.append(f"Amount precision {decimal_places} exceeds maximum {config['precision']}")
+                
+        except (InvalidOperation, ValueError, TypeError) as e:
+            errors.append(f"Invalid amount format: {amount_str}")
         
         return errors
     
-    def _validate_formats(self, record: Dict[str, Any]) -> List[ValidationError]:
-        """Validate field formats."""
-        
+    def validate_date(self, date_str: str) -> List[str]:
+        """Validate transaction date."""
         errors = []
+        config = self.validation_config['date_range']
         
-        # Validate zip code
-        zip_errors = self._validate_zip_code(record)
-        errors.extend(zip_errors)
-        
-        # Validate state
-        state_errors = self._validate_state(record)
-        errors.extend(state_errors)
-        
-        # Validate country
-        country_errors = self._validate_country(record)
-        errors.extend(country_errors)
+        try:
+            trans_date = datetime.strptime(date_str, config['date_format'])
+            min_date = datetime.strptime(config['min_date'], config['date_format'])
+            max_date = datetime.now() + timedelta(days=config['max_date_offset_days'])
+            
+            if trans_date < min_date:
+                errors.append(f"Date {date_str} before minimum {config['min_date']}")
+            
+            if trans_date > max_date:
+                errors.append(f"Date {date_str} is in the future")
+                
+        except (ValueError, TypeError) as e:
+            errors.append(f"Invalid date format: {date_str}")
         
         return errors
     
-    def _validate_zip_code(self, record: Dict[str, Any]) -> List[ValidationError]:
-        """Validate zip code format based on country."""
-        
+    def validate_transaction_type(self, trans_type: str) -> List[str]:
+        """Validate transaction type."""
         errors = []
-        zip_code = record.get('zip_code', '').strip()
-        country = record.get('country', '').strip().upper()
+        allowed = self.validation_config['transaction_types']['allowed']
         
-        if not zip_code:
-            return errors
-        
-        patterns = self.completeness_config.get('zip_code_patterns', {})
-        pattern = patterns.get(country)
-        
-        if pattern and not re.match(pattern, zip_code):
-            errors.append(ValidationError(
-                field='zip_code',
-                error_type='invalid_format',
-                message=f"Invalid zip code format for country {country}",
-                value=zip_code
-            ))
+        if not trans_type:
+            errors.append("Transaction type is required")
+        elif trans_type not in allowed:
+            errors.append(f"Invalid transaction type: {trans_type}. Allowed: {allowed}")
         
         return errors
     
-    def _validate_state(self, record: Dict[str, Any]) -> List[ValidationError]:
-        """Validate state code."""
-        
+    def validate_status(self, status: str) -> List[str]:
+        """Validate transaction status."""
         errors = []
-        state = record.get('state', '').strip().upper()
-        country = record.get('country', '').strip().upper()
+        allowed = self.validation_config['status_codes']['allowed']
         
-        if not state:
-            return errors
-        
-        state_codes = self.completeness_config.get('state_codes', {})
-        valid_codes = state_codes.get(country, [])
-        
-        if valid_codes and state not in valid_codes:
-            errors.append(ValidationError(
-                field='state',
-                error_type='invalid_code',
-                message=f"Invalid state code '{state}' for country {country}",
-                value=state
-            ))
+        if not status:
+            errors.append("Status is required")
+        elif status not in allowed:
+            errors.append(f"Invalid status: {status}. Allowed: {allowed}")
         
         return errors
     
-    def _validate_country(self, record: Dict[str, Any]) -> List[ValidationError]:
-        """Validate country code."""
-        
+    def validate_currency(self, currency: str) -> List[str]:
+        """Validate currency code."""
         errors = []
-        country = record.get('country', '').strip().upper()
         
-        if not country:
-            return errors
-        
-        valid_codes = self.completeness_config.get('country_codes', [])
-        
-        if country not in valid_codes:
-            errors.append(ValidationError(
-                field='country',
-                error_type='invalid_code',
-                message=f"Invalid country code '{country}'",
-                value=country
-            ))
+        if not currency:
+            errors.append("Currency is required")
+        elif not re.match(r'^[A-Z]{3}$', currency):
+            errors.append(f"Invalid currency format: {currency}. Expected 3-letter ISO code")
         
         return errors
+    
+    def validate_transaction_id(self, trans_id: str) -> List[str]:
+        """Validate transaction ID."""
+        errors = []
+        
+        if not trans_id:
+            errors.append("Transaction ID is required")
+        elif len(trans_id) > 50:
+            errors.append(f"Transaction ID too long: {len(trans_id)} characters")
+        
+        return errors
+    
+    def validate_batch(self, transactions: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Validate a batch of transactions.
+        
+        Args:
+            transactions: List of transaction records
+            
+        Returns:
+            Validation summary
+        """
+        valid_count = 0
+        invalid_count = 0
+        validation_results = []
+        
+        for transaction in transactions:
+            is_valid, errors = self.validate_transaction(transaction)
+            
+            result = {
+                'transaction_id': transaction.get('transaction_id'),
+                'is_valid': is_valid,
+                'errors': errors,
+                'validation_timestamp': datetime.now().isoformat()
+            }
+            validation_results.append(result)
+            
+            if is_valid:
+                valid_count += 1
+            else:
+                invalid_count += 1
+        
+        summary = {
+            'total_records': len(transactions),
+            'valid_count': valid_count,
+            'invalid_count': invalid_count,
+            'validation_rate': valid_count / len(transactions) if transactions else 0,
+            'validation_results': validation_results,
+            'validation_timestamp': datetime.now().isoformat()
+        }
+        
+        logger.info(f"Batch validation complete: {valid_count} valid, {invalid_count} invalid")
+        return summary
