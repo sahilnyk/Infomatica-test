@@ -1,319 +1,422 @@
 """
-Validation module for customer master data quality checks.
-Implements business rules and data quality validations.
+Validation module for address data quality checks.
+Implements completeness, format, and referential integrity validation.
 """
-import re
+
 import logging
-from typing import Dict, Any, List, Tuple
-from datetime import datetime
+import re
+from typing import Dict, List, Any, Optional, Tuple
+from dataclasses import dataclass
 from enum import Enum
+import nipyapi
+from nipyapi.nifi import ProcessorConfigDTO, ProcessGroupEntity
 
 logger = logging.getLogger(__name__)
 
 
-class ValidationSeverity(Enum):
-    """Validation error severity levels."""
-    CRITICAL = "CRITICAL"
-    ERROR = "ERROR"
-    WARNING = "WARNING"
-    INFO = "INFO"
+class ValidationResult(Enum):
+    """Validation result types."""
+    VALID = "valid"
+    INVALID = "invalid"
+    INCOMPLETE = "incomplete"
+    ORPHANED = "orphaned"
 
 
-class ValidationResult:
-    """Container for validation results."""
+@dataclass
+class ValidationError:
+    """Represents a validation error."""
+    field: str
+    error_type: str
+    message: str
+    value: Optional[str] = None
+
+
+class AddressValidator:
+    """Validates address data for completeness and correctness."""
     
-    def __init__(self):
-        self.is_valid = True
-        self.errors = []
-        self.warnings = []
-        self.info = []
-        self.metrics = {}
-        
-    def add_error(self, field: str, message: str, severity: ValidationSeverity = ValidationSeverity.ERROR):
-        """Add validation error."""
-        error_entry = {
-            'field': field,
-            'message': message,
-            'severity': severity.value,
-            'timestamp': datetime.utcnow().isoformat()
-        }
-        
-        if severity == ValidationSeverity.CRITICAL or severity == ValidationSeverity.ERROR:
-            self.is_valid = False
-            self.errors.append(error_entry)
-        elif severity == ValidationSeverity.WARNING:
-            self.warnings.append(error_entry)
-        else:
-            self.info.append(error_entry)
-            
-    def get_all_issues(self) -> List[Dict[str, Any]]:
-        """Get all validation issues."""
-        return self.errors + self.warnings + self.info
-        
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert validation result to dictionary."""
-        return {
-            'is_valid': self.is_valid,
-            'error_count': len(self.errors),
-            'warning_count': len(self.warnings),
-            'info_count': len(self.info),
-            'errors': self.errors,
-            'warnings': self.warnings,
-            'info': self.info,
-            'metrics': self.metrics
-        }
-
-
-class CustomerDataValidator:
-    """Validate customer master data against business rules."""
-    
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict[str, Any], canvas: Any):
         """
-        Initialize validator with configuration.
+        Initialize the validator.
         
         Args:
-            config: Configuration dictionary containing validation rules
+            config: Configuration dictionary
+            canvas: NiFi canvas object
         """
         self.config = config
-        self.validation_rules = config.get('validation_rules', {})
-        self.required_fields = config.get('required_fields', [])
-        self.field_patterns = config.get('field_patterns', {})
-        self.valid_statuses = config.get('valid_statuses', [])
-        self.valid_countries = config.get('valid_countries', [])
-        self.valid_states = config.get('valid_states', [])
+        self.canvas = canvas
+        self.validation_config = config.get('validation', {})
+        self.completeness_config = self.validation_config.get('address_completeness', {})
         
-    def validate_customer(self, customer_data: Dict[str, Any]) -> ValidationResult:
+    def create_validation_flow(self, process_group: ProcessGroupEntity) -> Dict[str, Any]:
         """
-        Validate customer master data record.
+        Create the validation flow in NiFi.
         
         Args:
-            customer_data: Customer data dictionary
+            process_group: Parent process group
             
         Returns:
-            ValidationResult object containing validation results
+            Dictionary containing processor references
         """
-        result = ValidationResult()
+        logger.info("Creating validation flow for address data")
         
-        # Required field validation
-        self._validate_required_fields(customer_data, result)
+        processors = {}
         
-        # Field format validation
-        self._validate_field_formats(customer_data, result)
-        
-        # Business rule validation
-        self._validate_business_rules(customer_data, result)
-        
-        # Data quality checks
-        self._validate_data_quality(customer_data, result)
-        
-        # Calculate metrics
-        result.metrics = self._calculate_metrics(customer_data, result)
-        
-        logger.info(f"Validation completed for customer {customer_data.get('customer_id')}: "
-                   f"Valid={result.is_valid}, Errors={len(result.errors)}, "
-                   f"Warnings={len(result.warnings)}")
-        
-        return result
-        
-    def _validate_required_fields(self, data: Dict[str, Any], result: ValidationResult):
-        """Validate required fields are present and not empty."""
-        for field in self.required_fields:
-            value = data.get(field)
-            if value is None or (isinstance(value, str) and not value.strip()):
-                result.add_error(
-                    field,
-                    f"Required field '{field}' is missing or empty",
-                    ValidationSeverity.CRITICAL
-                )
-                
-    def _validate_field_formats(self, data: Dict[str, Any], result: ValidationResult):
-        """Validate field formats using regex patterns."""
-        
-        # Customer ID format
-        customer_id = data.get('customer_id', '')
-        if customer_id:
-            pattern = self.field_patterns.get('customer_id', r'^[A-Z0-9]{10}$')
-            if not re.match(pattern, customer_id):
-                result.add_error(
-                    'customer_id',
-                    f"Customer ID '{customer_id}' does not match required format",
-                    ValidationSeverity.ERROR
-                )
-                
-        # Email format
-        email = data.get('email', '')
-        if email:
-            email_pattern = self.field_patterns.get('email', 
-                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-            if not re.match(email_pattern, email):
-                result.add_error(
-                    'email',
-                    f"Email '{email}' is not in valid format",
-                    ValidationSeverity.ERROR
-                )
-                
-        # Phone format
-        phone = data.get('phone', '')
-        if phone:
-            phone_pattern = self.field_patterns.get('phone', r'^\+?[\d\s\-\(\)]{10,20}$')
-            if not re.match(phone_pattern, phone):
-                result.add_error(
-                    'phone',
-                    f"Phone '{phone}' is not in valid format",
-                    ValidationSeverity.WARNING
-                )
-                
-        # Zip code format
-        zip_code = data.get('zip_code', '')
-        country = data.get('country', '')
-        if zip_code and country == 'US':
-            zip_pattern = self.field_patterns.get('zip_code_us', r'^\d{5}(-\d{4})?$')
-            if not re.match(zip_pattern, zip_code):
-                result.add_error(
-                    'zip_code',
-                    f"US zip code '{zip_code}' is not in valid format",
-                    ValidationSeverity.ERROR
-                )
-                
-    def _validate_business_rules(self, data: Dict[str, Any], result: ValidationResult):
-        """Validate business rules."""
-        
-        # Status validation
-        status = data.get('status', '')
-        if status and status not in self.valid_statuses:
-            result.add_error(
-                'status',
-                f"Status '{status}' is not valid. Must be one of: {', '.join(self.valid_statuses)}",
-                ValidationSeverity.ERROR
+        try:
+            # Create referential integrity checker
+            processors['check_referential_integrity'] = self._create_referential_integrity_checker(
+                process_group,
+                position={'x': 700, 'y': 200}
             )
             
-        # Country validation
-        country = data.get('country', '')
-        if country and country not in self.valid_countries:
-            result.add_error(
+            # Create address completeness validator
+            processors['validate_completeness'] = self._create_completeness_validator(
+                process_group,
+                position={'x': 1000, 'y': 200}
+            )
+            
+            # Create format validators
+            processors['validate_zip_code'] = self._create_format_validator(
+                process_group,
+                "Validate Zip Code Format",
+                'zip_code',
+                position={'x': 1300, 'y': 100}
+            )
+            
+            processors['validate_state'] = self._create_format_validator(
+                process_group,
+                "Validate State Code",
+                'state',
+                position={'x': 1300, 'y': 300}
+            )
+            
+            processors['validate_country'] = self._create_format_validator(
+                process_group,
+                "Validate Country Code",
                 'country',
-                f"Country code '{country}' is not valid",
-                ValidationSeverity.ERROR
+                position={'x': 1300, 'y': 500}
             )
             
-        # State validation for US addresses
-        if country == 'US':
-            state = data.get('state', '')
-            if state and state not in self.valid_states:
-                result.add_error(
-                    'state',
-                    f"State code '{state}' is not valid for US addresses",
-                    ValidationSeverity.ERROR
+            # Create route processor for validation results
+            processors['route_validation_results'] = self._create_route_processor(
+                process_group,
+                position={'x': 1600, 'y': 200}
+            )
+            
+            logger.info("Validation flow created successfully")
+            return processors
+            
+        except Exception as e:
+            logger.error(f"Failed to create validation flow: {str(e)}")
+            raise
+    
+    def _create_referential_integrity_checker(
+        self,
+        process_group: ProcessGroupEntity,
+        position: Dict[str, int]
+    ) -> Any:
+        """Create processor to check referential integrity with customer master."""
+        
+        # Use LookupRecord processor to join with customer data
+        processor = nipyapi.canvas.create_processor(
+            parent_pg=process_group,
+            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.LookupRecord'),
+            location=(position['x'], position['y']),
+            name="Check Customer Reference",
+            config=ProcessorConfigDTO(
+                properties={
+                    'Record Reader': 'CSVReader',
+                    'Record Writer': 'CSVRecordSetWriter',
+                    'Lookup Service': 'DistributedMapCacheLookupService',
+                    'Result RecordPath': '/customer_exists',
+                    'Routing Strategy': 'Route to Property name',
+                    'Record Result Contents': 'Insert Entire Record',
+                    'customer_id': '/customer_id'
+                },
+                auto_terminated_relationships=[],
+                scheduling_period='0 sec',
+                scheduling_strategy='EVENT_DRIVEN'
+            )
+        )
+        
+        logger.info("Created referential integrity checker processor")
+        return processor
+    
+    def _create_completeness_validator(
+        self,
+        process_group: ProcessGroupEntity,
+        position: Dict[str, int]
+    ) -> Any:
+        """Create processor to validate address completeness."""
+        
+        required_fields = self.completeness_config.get('required_fields', [])
+        
+        # Build validation expression
+        validation_expressions = []
+        for field in required_fields:
+            validation_expressions.append(f"isNotEmpty(/{field})")
+        
+        validation_expr = " and ".join(validation_expressions)
+        
+        processor = nipyapi.canvas.create_processor(
+            parent_pg=process_group,
+            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.QueryRecord'),
+            location=(position['x'], position['y']),
+            name="Validate Address Completeness",
+            config=ProcessorConfigDTO(
+                properties={
+                    'Record Reader': 'CSVReader',
+                    'Record Writer': 'CSVRecordSetWriter',
+                    'complete': f"SELECT * FROM FLOWFILE WHERE {validation_expr}",
+                    'incomplete': f"SELECT * FROM FLOWFILE WHERE NOT ({validation_expr})",
+                    'Include Zero Record FlowFiles': 'false'
+                },
+                auto_terminated_relationships=[],
+                scheduling_period='0 sec',
+                scheduling_strategy='EVENT_DRIVEN'
+            )
+        )
+        
+        logger.info("Created completeness validator processor")
+        return processor
+    
+    def _create_format_validator(
+        self,
+        process_group: ProcessGroupEntity,
+        name: str,
+        field: str,
+        position: Dict[str, int]
+    ) -> Any:
+        """Create processor to validate field format."""
+        
+        # Get validation patterns
+        patterns = self._get_validation_patterns(field)
+        
+        # Create UpdateRecord processor with validation logic
+        processor = nipyapi.canvas.create_processor(
+            parent_pg=process_group,
+            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.UpdateRecord'),
+            location=(position['x'], position['y']),
+            name=name,
+            config=ProcessorConfigDTO(
+                properties={
+                    'Record Reader': 'CSVReader',
+                    'Record Writer': 'CSVRecordSetWriter',
+                    'Replacement Value Strategy': 'Record Path Value',
+                    f'/validation_{field}_result': self._build_validation_expression(field, patterns),
+                    f'/validation_{field}_error': f"concat('Invalid {field} format: ', /{field})"
+                },
+                auto_terminated_relationships=[],
+                scheduling_period='0 sec',
+                scheduling_strategy='EVENT_DRIVEN'
+            )
+        )
+        
+        logger.info(f"Created format validator processor: {name}")
+        return processor
+    
+    def _get_validation_patterns(self, field: str) -> Dict[str, str]:
+        """Get validation patterns for a field."""
+        
+        if field == 'zip_code':
+            return self.completeness_config.get('zip_code_patterns', {})
+        elif field == 'state':
+            return {'codes': self.completeness_config.get('state_codes', {})}
+        elif field == 'country':
+            return {'codes': self.completeness_config.get('country_codes', [])}
+        
+        return {}
+    
+    def _build_validation_expression(self, field: str, patterns: Dict[str, Any]) -> str:
+        """Build RecordPath validation expression."""
+        
+        if field == 'zip_code':
+            # Build regex validation for zip codes based on country
+            conditions = []
+            for country, pattern in patterns.items():
+                conditions.append(
+                    f"(equals(/country, '{country}') and matches(/{field}, '{pattern}'))"
                 )
-                
-        # Name validation
-        first_name = data.get('first_name', '')
-        last_name = data.get('last_name', '')
+            return f"if({' or '.join(conditions)}, 'VALID', 'INVALID')"
         
-        if first_name and len(first_name) < 2:
-            result.add_error(
-                'first_name',
-                "First name must be at least 2 characters",
-                ValidationSeverity.WARNING
-            )
+        elif field == 'state':
+            # Validate state codes
+            state_codes = patterns.get('codes', {})
+            all_codes = []
+            for country, codes in state_codes.items():
+                all_codes.extend(codes)
             
-        if last_name and len(last_name) < 2:
-            result.add_error(
-                'last_name',
-                "Last name must be at least 2 characters",
-                ValidationSeverity.WARNING
+            codes_list = "', '".join(all_codes)
+            return f"if(contains(['{codes_list}'], /{field}), 'VALID', 'INVALID')"
+        
+        elif field == 'country':
+            # Validate country codes
+            codes = patterns.get('codes', [])
+            codes_list = "', '".join(codes)
+            return f"if(contains(['{codes_list}'], /{field}), 'VALID', 'INVALID')"
+        
+        return "'VALID'"
+    
+    def _create_route_processor(
+        self,
+        process_group: ProcessGroupEntity,
+        position: Dict[str, int]
+    ) -> Any:
+        """Create processor to route records based on validation results."""
+        
+        processor = nipyapi.canvas.create_processor(
+            parent_pg=process_group,
+            processor=nipyapi.canvas.get_processor_type('org.apache.nifi.processors.standard.RouteOnAttribute'),
+            location=(position['x'], position['y']),
+            name="Route Validation Results",
+            config=ProcessorConfigDTO(
+                properties={
+                    'Routing Strategy': 'Route to Property name',
+                    'valid': "${validation_zip_code_result:equals('VALID'):and("
+                            "${validation_state_result:equals('VALID')}):and("
+                            "${validation_country_result:equals('VALID')}):and("
+                            "${customer_exists:equals('true')})}",
+                    'invalid': "${validation_zip_code_result:equals('INVALID'):or("
+                              "${validation_state_result:equals('INVALID')}):or("
+                              "${validation_country_result:equals('INVALID')})}",
+                    'orphaned': "${customer_exists:equals('false')}"
+                },
+                auto_terminated_relationships=['unmatched'],
+                scheduling_period='0 sec',
+                scheduling_strategy='EVENT_DRIVEN'
             )
-            
-        # Registration date validation
-        reg_date = data.get('registration_date', '')
-        if reg_date:
-            try:
-                parsed_date = datetime.fromisoformat(reg_date.replace('Z', '+00:00'))
-                if parsed_date > datetime.utcnow():
-                    result.add_error(
-                        'registration_date',
-                        "Registration date cannot be in the future",
-                        ValidationSeverity.ERROR
-                    )
-            except (ValueError, AttributeError):
-                result.add_error(
-                    'registration_date',
-                    f"Registration date '{reg_date}' is not in valid ISO format",
-                    ValidationSeverity.ERROR
-                )
-                
-    def _validate_data_quality(self, data: Dict[str, Any], result: ValidationResult):
-        """Perform data quality checks."""
+        )
         
-        # Check for suspicious patterns
-        email = data.get('email', '')
-        if email and ('test' in email.lower() or 'dummy' in email.lower()):
-            result.add_error(
-                'email',
-                "Email appears to be a test/dummy value",
-                ValidationSeverity.WARNING
-            )
-            
-        # Check for placeholder values
-        placeholder_patterns = ['xxx', 'n/a', 'na', 'null', 'none', 'unknown']
-        for field in ['first_name', 'last_name', 'city', 'address_line1']:
-            value = str(data.get(field, '')).lower()
-            if any(pattern in value for pattern in placeholder_patterns):
-                result.add_error(
-                    field,
-                    f"Field '{field}' contains placeholder value",
-                    ValidationSeverity.WARNING
-                )
-                
-        # Check for data completeness
-        address_fields = ['address_line1', 'city', 'state', 'zip_code', 'country']
-        filled_address_fields = sum(1 for f in address_fields if data.get(f))
-        
-        if 0 < filled_address_fields < len(address_fields):
-            result.add_error(
-                'address',
-                "Address information is incomplete",
-                ValidationSeverity.WARNING
-            )
-            
-        # Check for duplicate spaces
-        for field in ['first_name', 'last_name', 'city', 'address_line1']:
-            value = data.get(field, '')
-            if '  ' in value:
-                result.add_error(
-                    field,
-                    f"Field '{field}' contains multiple consecutive spaces",
-                    ValidationSeverity.INFO
-                )
-                
-    def _calculate_metrics(self, data: Dict[str, Any], result: ValidationResult) -> Dict[str, Any]:
-        """Calculate data quality metrics."""
-        total_fields = len(data)
-        filled_fields = sum(1 for v in data.values() if v and str(v).strip())
-        
-        return {
-            'completeness_score': round((filled_fields / total_fields) * 100, 2) if total_fields > 0 else 0,
-            'total_fields': total_fields,
-            'filled_fields': filled_fields,
-            'empty_fields': total_fields - filled_fields,
-            'validation_timestamp': datetime.utcnow().isoformat()
-        }
-        
-    def validate_batch(self, customer_records: List[Dict[str, Any]]) -> List[Tuple[Dict[str, Any], ValidationResult]]:
+        logger.info("Created route processor for validation results")
+        return processor
+    
+    def validate_address_record(self, record: Dict[str, Any]) -> Tuple[ValidationResult, List[ValidationError]]:
         """
-        Validate multiple customer records.
+        Validate a single address record.
         
         Args:
-            customer_records: List of customer data dictionaries
+            record: Address record dictionary
             
         Returns:
-            List of tuples containing (customer_data, validation_result)
+            Tuple of (ValidationResult, List of ValidationErrors)
         """
-        results = []
+        errors = []
         
-        for record in customer_records:
-            validation_result = self.validate_customer(record)
-            results.append((record, validation_result))
-            
-        logger.info(f"Batch validation completed: {len(results)} records processed")
-        return results
+        # Check completeness
+        completeness_errors = self._validate_completeness(record)
+        errors.extend(completeness_errors)
+        
+        # Check format
+        format_errors = self._validate_formats(record)
+        errors.extend(format_errors)
+        
+        # Determine overall result
+        if not errors:
+            return ValidationResult.VALID, []
+        elif any(e.error_type == 'missing_required' for e in errors):
+            return ValidationResult.INCOMPLETE, errors
+        else:
+            return ValidationResult.INVALID, errors
+    
+    def _validate_completeness(self, record: Dict[str, Any]) -> List[ValidationError]:
+        """Validate that required fields are present and non-empty."""
+        
+        errors = []
+        required_fields = self.completeness_config.get('required_fields', [])
+        
+        for field in required_fields:
+            value = record.get(field)
+            if not value or (isinstance(value, str) and not value.strip()):
+                errors.append(ValidationError(
+                    field=field,
+                    error_type='missing_required',
+                    message=f"Required field '{field}' is missing or empty",
+                    value=value
+                ))
+        
+        return errors
+    
+    def _validate_formats(self, record: Dict[str, Any]) -> List[ValidationError]:
+        """Validate field formats."""
+        
+        errors = []
+        
+        # Validate zip code
+        zip_errors = self._validate_zip_code(record)
+        errors.extend(zip_errors)
+        
+        # Validate state
+        state_errors = self._validate_state(record)
+        errors.extend(state_errors)
+        
+        # Validate country
+        country_errors = self._validate_country(record)
+        errors.extend(country_errors)
+        
+        return errors
+    
+    def _validate_zip_code(self, record: Dict[str, Any]) -> List[ValidationError]:
+        """Validate zip code format based on country."""
+        
+        errors = []
+        zip_code = record.get('zip_code', '').strip()
+        country = record.get('country', '').strip().upper()
+        
+        if not zip_code:
+            return errors
+        
+        patterns = self.completeness_config.get('zip_code_patterns', {})
+        pattern = patterns.get(country)
+        
+        if pattern and not re.match(pattern, zip_code):
+            errors.append(ValidationError(
+                field='zip_code',
+                error_type='invalid_format',
+                message=f"Invalid zip code format for country {country}",
+                value=zip_code
+            ))
+        
+        return errors
+    
+    def _validate_state(self, record: Dict[str, Any]) -> List[ValidationError]:
+        """Validate state code."""
+        
+        errors = []
+        state = record.get('state', '').strip().upper()
+        country = record.get('country', '').strip().upper()
+        
+        if not state:
+            return errors
+        
+        state_codes = self.completeness_config.get('state_codes', {})
+        valid_codes = state_codes.get(country, [])
+        
+        if valid_codes and state not in valid_codes:
+            errors.append(ValidationError(
+                field='state',
+                error_type='invalid_code',
+                message=f"Invalid state code '{state}' for country {country}",
+                value=state
+            ))
+        
+        return errors
+    
+    def _validate_country(self, record: Dict[str, Any]) -> List[ValidationError]:
+        """Validate country code."""
+        
+        errors = []
+        country = record.get('country', '').strip().upper()
+        
+        if not country:
+            return errors
+        
+        valid_codes = self.completeness_config.get('country_codes', [])
+        
+        if country not in valid_codes:
+            errors.append(ValidationError(
+                field='country',
+                error_type='invalid_code',
+                message=f"Invalid country code '{country}'",
+                value=country
+            ))
+        
+        return errors
