@@ -1,462 +1,389 @@
 """
-Sales Returns Processing - Transform Module
-Transforms returns data including refund calculations, reason code validation, and status tracking.
+Transform module for sales processing integration testing.
+Handles data transformation and business logic application.
 """
-
 import logging
-from typing import Dict, Any, Optional, List
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql import functions as F
-from pyspark.sql.window import Window
-from decimal import Decimal
+from typing import Dict, List, Optional
+import pandas as pd
+import numpy as np
+from datetime import datetime
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class SalesReturnsTransformer:
-    """Handles transformation logic for sales returns processing."""
+class SalesDataTransformer:
+    """Transforms sales data according to business rules."""
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: Dict):
         """
-        Initialize the transformer.
+        Initialize the transformer with configuration.
         
         Args:
-            config: Configuration dictionary
+            config: Configuration dictionary containing transformation rules
         """
         self.config = config
         self.transform_config = config.get('transformations', {})
-        self.business_rules = config.get('business_rules', {})
         
-    def validate_reason_codes(self, returns_df: DataFrame) -> DataFrame:
+    def transform_customers(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Validate return reason codes against allowed values.
-        
-        Args:
-            returns_df: DataFrame containing returns data
-            
-        Returns:
-            DataFrame with validated reason codes and validation flag
-        """
-        try:
-            logger.info("Validating return reason codes")
-            
-            valid_codes = self.business_rules.get('valid_reason_codes', [])
-            
-            # Add validation flag
-            validated_df = returns_df.withColumn(
-                'reason_code_valid',
-                F.when(
-                    F.col('reason_code').isin(valid_codes),
-                    F.lit(True)
-                ).otherwise(F.lit(False))
-            )
-            
-            # Add validation message
-            validated_df = validated_df.withColumn(
-                'reason_code_validation_msg',
-                F.when(
-                    F.col('reason_code_valid') == False,
-                    F.concat(
-                        F.lit('Invalid reason code: '),
-                        F.col('reason_code')
-                    )
-                ).otherwise(F.lit(None))
-            )
-            
-            invalid_count = validated_df.filter(F.col('reason_code_valid') == False).count()
-            logger.info(f"Found {invalid_count} returns with invalid reason codes")
-            
-            return validated_df
-            
-        except Exception as e:
-            logger.error(f"Error validating reason codes: {str(e)}")
-            raise
-    
-    def calculate_refund_amounts(
-        self,
-        return_items_df: DataFrame,
-        products_df: DataFrame
-    ) -> DataFrame:
-        """
-        Calculate refund amounts for return items including restocking fees.
+        Transform customer data.
         
         Args:
-            return_items_df: DataFrame containing return items
-            products_df: DataFrame containing product pricing
+            df: Raw customer DataFrame
             
         Returns:
-            DataFrame with calculated refund amounts
+            Transformed customer DataFrame
         """
         try:
-            logger.info("Calculating refund amounts")
+            logger.info("Transforming customer data")
+            df_transformed = df.copy()
             
-            restocking_fee_pct = self.business_rules.get('restocking_fee_percentage', 0.15)
-            min_refund_amount = self.business_rules.get('min_refund_amount', 0.0)
-            
-            # Join with products to get original prices
-            items_with_price = return_items_df.join(
-                products_df.select('product_id', 'unit_price'),
-                on='product_id',
-                how='left'
+            # Standardize names
+            df_transformed['first_name'] = df_transformed['first_name'].str.strip().str.title()
+            df_transformed['last_name'] = df_transformed['last_name'].str.strip().str.title()
+            df_transformed['full_name'] = (
+                df_transformed['first_name'] + ' ' + df_transformed['last_name']
             )
             
-            # Calculate base refund amount
-            refund_df = items_with_price.withColumn(
-                'base_refund_amount',
-                F.col('quantity') * F.coalesce(F.col('return_unit_price'), F.col('unit_price'))
-            )
+            # Standardize email
+            df_transformed['email'] = df_transformed['email'].str.lower().str.strip()
             
-            # Calculate restocking fee
-            refund_df = refund_df.withColumn(
-                'restocking_fee',
-                F.when(
-                    F.col('apply_restocking_fee') == True,
-                    F.col('base_refund_amount') * F.lit(restocking_fee_pct)
-                ).otherwise(F.lit(0.0))
-            )
+            # Validate email format
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            df_transformed['email_valid'] = df_transformed['email'].str.match(email_pattern)
             
-            # Calculate net refund amount
-            refund_df = refund_df.withColumn(
-                'net_refund_amount',
-                F.greatest(
-                    F.col('base_refund_amount') - F.col('restocking_fee'),
-                    F.lit(min_refund_amount)
-                )
-            )
+            # Standardize phone numbers
+            df_transformed['phone'] = df_transformed['phone'].str.replace(r'[^\d]', '', regex=True)
             
-            # Round to 2 decimal places
-            refund_df = refund_df.withColumn(
-                'net_refund_amount',
-                F.round(F.col('net_refund_amount'), 2)
-            ).withColumn(
-                'restocking_fee',
-                F.round(F.col('restocking_fee'), 2)
-            ).withColumn(
-                'base_refund_amount',
-                F.round(F.col('base_refund_amount'), 2)
-            )
-            
-            total_refund = refund_df.agg(
-                F.sum('net_refund_amount').alias('total')
-            ).collect()[0]['total']
-            
-            logger.info(f"Calculated total refund amount: ${total_refund:,.2f}")
-            
-            return refund_df
-            
-        except Exception as e:
-            logger.error(f"Error calculating refund amounts: {str(e)}")
-            raise
-    
-    def determine_return_status(self, returns_df: DataFrame) -> DataFrame:
-        """
-        Determine return status based on business rules.
-        
-        Args:
-            returns_df: DataFrame containing returns data
-            
-        Returns:
-            DataFrame with determined return status
-        """
-        try:
-            logger.info("Determining return status")
-            
-            max_return_days = self.business_rules.get('max_return_days', 30)
-            
-            # Calculate days since purchase
-            status_df = returns_df.withColumn(
-                'days_since_purchase',
-                F.datediff(F.col('return_date'), F.col('order_date'))
-            )
-            
-            # Determine eligibility
-            status_df = status_df.withColumn(
-                'return_eligible',
-                F.when(
-                    (F.col('days_since_purchase') <= max_return_days) &
-                    (F.col('reason_code_valid') == True) &
-                    (F.col('order_status') == 'COMPLETED'),
-                    F.lit(True)
-                ).otherwise(F.lit(False))
-            )
-            
-            # Determine return status
-            status_df = status_df.withColumn(
-                'return_status',
-                F.when(
-                    F.col('return_eligible') == False,
-                    F.lit('REJECTED')
-                ).when(
-                    F.col('current_status').isNull(),
-                    F.lit('PENDING')
-                ).otherwise(F.col('current_status'))
-            )
-            
-            # Add rejection reason
-            status_df = status_df.withColumn(
-                'rejection_reason',
-                F.when(
-                    (F.col('return_eligible') == False) & 
-                    (F.col('days_since_purchase') > max_return_days),
-                    F.lit('Return period exceeded')
-                ).when(
-                    (F.col('return_eligible') == False) & 
-                    (F.col('reason_code_valid') == False),
-                    F.lit('Invalid reason code')
-                ).when(
-                    (F.col('return_eligible') == False) & 
-                    (F.col('order_status') != 'COMPLETED'),
-                    F.lit('Order not completed')
-                ).otherwise(F.lit(None))
-            )
-            
-            # Status distribution
-            status_counts = status_df.groupBy('return_status').count().collect()
-            for row in status_counts:
-                logger.info(f"Status {row['return_status']}: {row['count']} returns")
-            
-            return status_df
-            
-        except Exception as e:
-            logger.error(f"Error determining return status: {str(e)}")
-            raise
-    
-    def aggregate_return_totals(
-        self,
-        returns_df: DataFrame,
-        return_items_df: DataFrame
-    ) -> DataFrame:
-        """
-        Aggregate return totals by return ID.
-        
-        Args:
-            returns_df: DataFrame containing returns header data
-            return_items_df: DataFrame containing return items with refund amounts
-            
-        Returns:
-            DataFrame with aggregated return totals
-        """
-        try:
-            logger.info("Aggregating return totals")
-            
-            # Aggregate item-level data
-            item_aggregates = return_items_df.groupBy('return_id').agg(
-                F.sum('quantity').alias('total_items_returned'),
-                F.sum('base_refund_amount').alias('total_base_refund'),
-                F.sum('restocking_fee').alias('total_restocking_fee'),
-                F.sum('net_refund_amount').alias('total_net_refund'),
-                F.count('*').alias('line_item_count')
-            )
-            
-            # Join with returns header
-            aggregated_df = returns_df.join(
-                item_aggregates,
-                on='return_id',
-                how='left'
-            )
-            
-            # Fill nulls for returns with no items
-            aggregated_df = aggregated_df.fillna({
-                'total_items_returned': 0,
-                'total_base_refund': 0.0,
-                'total_restocking_fee': 0.0,
-                'total_net_refund': 0.0,
-                'line_item_count': 0
-            })
-            
-            logger.info("Return totals aggregated successfully")
-            
-            return aggregated_df
-            
-        except Exception as e:
-            logger.error(f"Error aggregating return totals: {str(e)}")
-            raise
-    
-    def enrich_with_customer_data(
-        self,
-        returns_df: DataFrame,
-        customers_df: DataFrame
-    ) -> DataFrame:
-        """
-        Enrich returns data with customer information.
-        
-        Args:
-            returns_df: DataFrame containing returns data
-            customers_df: DataFrame containing customer data
-            
-        Returns:
-            DataFrame enriched with customer information
-        """
-        try:
-            logger.info("Enriching returns with customer data")
-            
-            # Select relevant customer fields
-            customer_fields = customers_df.select(
-                'customer_id',
-                'first_name',
-                'last_name',
-                'email',
-                'phone',
-                'status',
-                'registration_date'
-            ).withColumnRenamed('status', 'customer_status')
-            
-            # Join with returns
-            enriched_df = returns_df.join(
-                customer_fields,
-                on='customer_id',
-                how='left'
-            )
-            
-            # Add customer full name
-            enriched_df = enriched_df.withColumn(
-                'customer_full_name',
-                F.concat_ws(' ', F.col('first_name'), F.col('last_name'))
-            )
+            # Standardize address
+            df_transformed['city'] = df_transformed['city'].str.strip().str.title()
+            df_transformed['state'] = df_transformed['state'].str.upper().str.strip()
+            df_transformed['country'] = df_transformed['country'].str.upper().str.strip()
+            df_transformed['zip_code'] = df_transformed['zip_code'].str.strip()
             
             # Calculate customer tenure
-            enriched_df = enriched_df.withColumn(
-                'customer_tenure_days',
-                F.datediff(F.col('return_date'), F.col('registration_date'))
+            df_transformed['customer_tenure_days'] = (
+                pd.Timestamp.now() - df_transformed['registration_date']
+            ).dt.days
+            
+            # Add data quality flags
+            df_transformed['has_complete_address'] = (
+                df_transformed['address_line1'].notna() &
+                df_transformed['city'].notna() &
+                df_transformed['state'].notna() &
+                df_transformed['zip_code'].notna()
             )
             
-            logger.info("Customer data enrichment complete")
+            # Add processing metadata
+            df_transformed['processed_date'] = pd.Timestamp.now()
+            df_transformed['record_source'] = 'SRC_CUSTOMERS'
             
-            return enriched_df
+            logger.info(f"Transformed {len(df_transformed)} customer records")
+            return df_transformed
             
         except Exception as e:
-            logger.error(f"Error enriching with customer data: {str(e)}")
+            logger.error(f"Error transforming customer data: {str(e)}")
             raise
     
-    def add_audit_columns(self, df: DataFrame) -> DataFrame:
+    def transform_sales_orders(
+        self, 
+        orders_df: pd.DataFrame,
+        customers_df: pd.DataFrame,
+        line_items_df: pd.DataFrame
+    ) -> pd.DataFrame:
         """
-        Add audit columns to the DataFrame.
+        Transform sales order data with enrichment.
         
         Args:
-            df: Input DataFrame
+            orders_df: Raw sales orders DataFrame
+            customers_df: Transformed customers DataFrame
+            line_items_df: Raw line items DataFrame
             
         Returns:
-            DataFrame with audit columns added
+            Transformed sales orders DataFrame
         """
         try:
-            logger.info("Adding audit columns")
+            logger.info("Transforming sales order data")
+            df_transformed = orders_df.copy()
             
-            audit_df = df.withColumn(
-                'processed_timestamp',
-                F.current_timestamp()
-            ).withColumn(
-                'processed_date',
-                F.current_date()
-            ).withColumn(
-                'source_system',
-                F.lit('INFORMATICA_MIGRATION')
-            ).withColumn(
-                'data_quality_score',
-                F.when(
-                    (F.col('reason_code_valid') == True) &
-                    (F.col('return_eligible') == True),
-                    F.lit(100)
-                ).when(
-                    F.col('reason_code_valid') == False,
-                    F.lit(50)
-                ).otherwise(F.lit(75))
+            # Join with customer data
+            df_transformed = df_transformed.merge(
+                customers_df[['customer_id', 'full_name', 'email', 'state', 'country']],
+                on='customer_id',
+                how='left',
+                suffixes=('', '_customer')
             )
             
-            return audit_df
+            # Calculate order metrics from line items
+            order_metrics = line_items_df.groupby('order_id').agg({
+                'line_item_id': 'count',
+                'quantity': 'sum',
+                'line_total': 'sum',
+                'tax_amount': 'sum'
+            }).reset_index()
             
-        except Exception as e:
-            logger.error(f"Error adding audit columns: {str(e)}")
-            raise
-    
-    def transform_returns(
-        self,
-        returns_df: DataFrame,
-        return_items_df: DataFrame,
-        customers_df: DataFrame,
-        orders_df: DataFrame,
-        products_df: DataFrame
-    ) -> Dict[str, DataFrame]:
-        """
-        Execute complete transformation pipeline for returns processing.
-        
-        Args:
-            returns_df: Returns header data
-            return_items_df: Return line items data
-            customers_df: Customer master data
-            orders_df: Order data
-            products_df: Product master data
+            order_metrics.columns = [
+                'order_id', 'line_item_count', 'total_quantity', 
+                'subtotal', 'total_tax'
+            ]
             
-        Returns:
-            Dictionary containing transformed DataFrames
-        """
-        try:
-            logger.info("Starting returns transformation pipeline")
-            
-            # Join returns with orders to get order details
-            returns_with_orders = returns_df.join(
-                orders_df.select(
-                    'order_id',
-                    F.col('order_date').alias('order_date'),
-                    F.col('status').alias('order_status')
-                ),
+            df_transformed = df_transformed.merge(
+                order_metrics,
                 on='order_id',
                 how='left'
             )
             
-            # Step 1: Validate reason codes
-            validated_returns = self.validate_reason_codes(returns_with_orders)
-            
-            # Step 2: Determine return status
-            status_returns = self.determine_return_status(validated_returns)
-            
-            # Step 3: Calculate refund amounts for items
-            refund_items = self.calculate_refund_amounts(return_items_df, products_df)
-            
-            # Step 4: Aggregate return totals
-            aggregated_returns = self.aggregate_return_totals(status_returns, refund_items)
-            
-            # Step 5: Enrich with customer data
-            enriched_returns = self.enrich_with_customer_data(
-                aggregated_returns,
-                customers_df
+            # Calculate total order amount
+            df_transformed['order_total'] = (
+                df_transformed['subtotal'] + df_transformed['total_tax']
             )
             
-            # Step 6: Add audit columns
-            final_returns = self.add_audit_columns(enriched_returns)
-            final_items = self.add_audit_columns(refund_items)
+            # Calculate shipping days
+            df_transformed['shipping_days'] = (
+                df_transformed['ship_date'] - df_transformed['order_date']
+            ).dt.days
             
-            logger.info("Returns transformation pipeline completed successfully")
+            df_transformed['delivery_days'] = (
+                df_transformed['delivery_date'] - df_transformed['ship_date']
+            ).dt.days
             
-            return {
-                'returns': final_returns,
-                'return_items': final_items
-            }
+            df_transformed['total_fulfillment_days'] = (
+                df_transformed['delivery_date'] - df_transformed['order_date']
+            ).dt.days
+            
+            # Categorize order size
+            df_transformed['order_size_category'] = pd.cut(
+                df_transformed['order_total'],
+                bins=[0, 100, 500, 1000, float('inf')],
+                labels=['Small', 'Medium', 'Large', 'Extra Large']
+            )
+            
+            # Flag late shipments (more than 3 days)
+            df_transformed['is_late_shipment'] = df_transformed['shipping_days'] > 3
+            
+            # Flag late deliveries (more than 7 days)
+            df_transformed['is_late_delivery'] = df_transformed['delivery_days'] > 7
+            
+            # Calculate order year, quarter, month
+            df_transformed['order_year'] = df_transformed['order_date'].dt.year
+            df_transformed['order_quarter'] = df_transformed['order_date'].dt.quarter
+            df_transformed['order_month'] = df_transformed['order_date'].dt.month
+            df_transformed['order_week'] = df_transformed['order_date'].dt.isocalendar().week
+            
+            # Add processing metadata
+            df_transformed['processed_date'] = pd.Timestamp.now()
+            df_transformed['record_source'] = 'SRC_SALES_ORDERS'
+            
+            logger.info(f"Transformed {len(df_transformed)} sales order records")
+            return df_transformed
             
         except Exception as e:
-            logger.error(f"Error in transformation pipeline: {str(e)}")
+            logger.error(f"Error transforming sales order data: {str(e)}")
             raise
+    
+    def transform_order_line_items(
+        self,
+        line_items_df: pd.DataFrame,
+        products_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Transform order line item data with product enrichment.
+        
+        Args:
+            line_items_df: Raw line items DataFrame
+            products_df: Products DataFrame
+            
+        Returns:
+            Transformed line items DataFrame
+        """
+        try:
+            logger.info("Transforming order line item data")
+            df_transformed = line_items_df.copy()
+            
+            # Join with product data
+            df_transformed = df_transformed.merge(
+                products_df[['product_id', 'product_name', 'category', 
+                           'subcategory', 'brand', 'cost']],
+                on='product_id',
+                how='left'
+            )
+            
+            # Calculate discount amount
+            df_transformed['discount_amount'] = (
+                df_transformed['unit_price'] * 
+                df_transformed['quantity'] * 
+                df_transformed['discount_percent'] / 100
+            )
+            
+            # Recalculate line total for validation
+            df_transformed['calculated_line_total'] = (
+                (df_transformed['unit_price'] * df_transformed['quantity']) -
+                df_transformed['discount_amount'] +
+                df_transformed['tax_amount']
+            )
+            
+            # Flag discrepancies
+            df_transformed['has_amount_discrepancy'] = (
+                abs(df_transformed['line_total'] - 
+                    df_transformed['calculated_line_total']) > 0.01
+            )
+            
+            # Calculate profit metrics
+            df_transformed['line_cost'] = df_transformed['cost'] * df_transformed['quantity']
+            df_transformed['line_profit'] = (
+                df_transformed['line_total'] - 
+                df_transformed['tax_amount'] - 
+                df_transformed['line_cost']
+            )
+            df_transformed['profit_margin'] = (
+                df_transformed['line_profit'] / 
+                (df_transformed['line_total'] - df_transformed['tax_amount']) * 100
+            ).fillna(0)
+            
+            # Categorize discount levels
+            df_transformed['discount_category'] = pd.cut(
+                df_transformed['discount_percent'],
+                bins=[-0.1, 0, 10, 20, 100],
+                labels=['None', 'Low', 'Medium', 'High']
+            )
+            
+            # Add processing metadata
+            df_transformed['processed_date'] = pd.Timestamp.now()
+            df_transformed['record_source'] = 'SRC_ORDER_LINE_ITEMS'
+            
+            logger.info(f"Transformed {len(df_transformed)} order line item records")
+            return df_transformed
+            
+        except Exception as e:
+            logger.error(f"Error transforming order line item data: {str(e)}")
+            raise
+    
+    def create_sales_summary(
+        self,
+        orders_df: pd.DataFrame,
+        line_items_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Create aggregated sales summary.
+        
+        Args:
+            orders_df: Transformed orders DataFrame
+            line_items_df: Transformed line items DataFrame
+            
+        Returns:
+            Sales summary DataFrame
+        """
+        try:
+            logger.info("Creating sales summary")
+            
+            # Aggregate by customer
+            customer_summary = orders_df.groupby('customer_id').agg({
+                'order_id': 'count',
+                'order_total': 'sum',
+                'order_date': ['min', 'max']
+            }).reset_index()
+            
+            customer_summary.columns = [
+                'customer_id', 'total_orders', 'total_revenue',
+                'first_order_date', 'last_order_date'
+            ]
+            
+            # Calculate customer lifetime value metrics
+            customer_summary['customer_lifetime_days'] = (
+                customer_summary['last_order_date'] - 
+                customer_summary['first_order_date']
+            ).dt.days
+            
+            customer_summary['average_order_value'] = (
+                customer_summary['total_revenue'] / customer_summary['total_orders']
+            )
+            
+            # Categorize customers
+            customer_summary['customer_segment'] = pd.cut(
+                customer_summary['total_orders'],
+                bins=[0, 1, 5, 10, float('inf')],
+                labels=['One-time', 'Occasional', 'Regular', 'VIP']
+            )
+            
+            logger.info(f"Created sales summary for {len(customer_summary)} customers")
+            return customer_summary
+            
+        except Exception as e:
+            logger.error(f"Error creating sales summary: {str(e)}")
+            raise
+    
+    def transform_all(self, extracted_data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+        """
+        Transform all extracted data.
+        
+        Args:
+            extracted_data: Dictionary of extracted DataFrames
+            
+        Returns:
+            Dictionary of transformed DataFrames
+        """
+        logger.info("Starting transformation of all data")
+        
+        # Transform in dependency order
+        transformed_customers = self.transform_customers(extracted_data['customers'])
+        
+        transformed_line_items = self.transform_order_line_items(
+            extracted_data['order_line_items'],
+            extracted_data['products']
+        )
+        
+        transformed_orders = self.transform_sales_orders(
+            extracted_data['sales_orders'],
+            transformed_customers,
+            extracted_data['order_line_items']
+        )
+        
+        sales_summary = self.create_sales_summary(
+            transformed_orders,
+            transformed_line_items
+        )
+        
+        transformed_data = {
+            'customers': transformed_customers,
+            'sales_orders': transformed_orders,
+            'order_line_items': transformed_line_items,
+            'sales_summary': sales_summary
+        }
+        
+        logger.info("Completed transformation of all data")
+        return transformed_data
 
 
-if __name__ == "__main__":
-    from extract import load_config
+def validate_transformations(transformed_data: Dict[str, pd.DataFrame]) -> Dict[str, Dict]:
+    """
+    Validate transformed data quality.
     
-    # Initialize Spark session
-    spark = SparkSession.builder \
-        .appName("SalesReturnsTransform") \
-        .getOrCreate()
+    Args:
+        transformed_data: Dictionary of transformed DataFrames
+        
+    Returns:
+        Dictionary containing validation results
+    """
+    validation_results = {}
     
-    try:
-        # Load configuration
-        config = load_config()
+    for data_name, df in transformed_data.items():
+        results = {
+            'record_count': len(df),
+            'null_counts': df.isnull().sum().to_dict(),
+            'columns': list(df.columns)
+        }
         
-        # Initialize transformer
-        transformer = SalesReturnsTransformer(config)
+        # Add specific validations
+        if data_name == 'customers':
+            results['invalid_emails'] = (~df['email_valid']).sum()
+            results['incomplete_addresses'] = (~df['has_complete_address']).sum()
+        elif data_name == 'sales_orders':
+            results['late_shipments'] = df['is_late_shipment'].sum()
+            results['late_deliveries'] = df['is_late_delivery'].sum()
+        elif data_name == 'order_line_items':
+            results['amount_discrepancies'] = df['has_amount_discrepancy'].sum()
         
-        logger.info("Transformer initialized successfully")
-        
-    except Exception as e:
-        logger.error(f"Transformation job failed: {str(e)}")
-        raise
-    finally:
-        spark.stop()
+        validation_results[data_name] = results
+        logger.info(f"Validation for {data_name}: {results}")
+    
+    return validation_results
