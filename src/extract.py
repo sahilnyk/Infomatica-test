@@ -1,178 +1,124 @@
 """
-Extract module for customer master data from flat files.
-Handles reading source data with proper encoding and error handling.
+Extract module for customer master data quality validation.
+Handles data extraction from NiFi flow files.
 """
-
+import json
 import logging
-import pandas as pd
-from pathlib import Path
-from typing import Dict, Any, Optional
-import yaml
+from typing import Dict, Any, List
+from datetime import datetime
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class CustomerDataExtractor:
-    """Extract customer master data from flat files."""
+    """Extract customer master data from NiFi flow files."""
     
-    def __init__(self, config_path: str = "config.yaml"):
-        """Initialize extractor with configuration."""
-        self.config = self._load_config(config_path)
-        self.source_config = self.config.get('source', {})
-        
-    def _load_config(self, config_path: str) -> Dict[str, Any]:
-        """Load configuration from YAML file."""
-        try:
-            with open(config_path, 'r') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            logger.error(f"Failed to load config from {config_path}: {e}")
-            raise
-    
-    def extract_customers(self, file_path: Optional[str] = None) -> pd.DataFrame:
+    def __init__(self, config: Dict[str, Any]):
         """
-        Extract customer master data from flat file.
+        Initialize extractor with configuration.
         
         Args:
-            file_path: Path to customer data file. If None, uses config.
+            config: Configuration dictionary containing extraction settings
+        """
+        self.config = config
+        self.source_fields = config.get('source_fields', {})
+        
+    def extract_customer_data(self, flowfile_content: str) -> Dict[str, Any]:
+        """
+        Extract customer data from flow file content.
+        
+        Args:
+            flowfile_content: Raw content from NiFi flow file
             
         Returns:
-            DataFrame containing customer data
+            Dictionary containing extracted customer data
+            
+        Raises:
+            ValueError: If content cannot be parsed
         """
-        if file_path is None:
-            file_path = self.source_config.get('customers_file')
-        
-        if not file_path:
-            raise ValueError("Customer file path not provided")
-        
-        logger.info(f"Extracting customer data from {file_path}")
-        
         try:
-            # Define expected schema based on Informatica source definition
-            dtype_mapping = {
-                'customer_id': str,
-                'first_name': str,
-                'last_name': str,
-                'email': str,
-                'phone': str,
-                'address_line1': str,
-                'address_line2': str,
-                'city': str,
-                'state': str,
-                'zip_code': str,
-                'country': str,
-                'status': str
+            if isinstance(flowfile_content, str):
+                data = json.loads(flowfile_content)
+            else:
+                data = flowfile_content
+                
+            customer_record = {
+                'customer_id': data.get('customer_id', '').strip(),
+                'first_name': data.get('first_name', '').strip(),
+                'last_name': data.get('last_name', '').strip(),
+                'email': data.get('email', '').strip(),
+                'phone': data.get('phone', '').strip(),
+                'address_line1': data.get('address_line1', '').strip(),
+                'address_line2': data.get('address_line2', '').strip(),
+                'city': data.get('city', '').strip(),
+                'state': data.get('state', '').strip(),
+                'zip_code': data.get('zip_code', '').strip(),
+                'country': data.get('country', '').strip(),
+                'registration_date': data.get('registration_date', ''),
+                'status': data.get('status', '').strip(),
+                'extraction_timestamp': datetime.utcnow().isoformat()
             }
             
-            df = pd.read_csv(
-                file_path,
-                dtype=dtype_mapping,
-                encoding=self.source_config.get('encoding', 'utf-8'),
-                na_values=self.source_config.get('na_values', ['', 'NULL', 'null', 'NA']),
-                keep_default_na=True
-            )
+            logger.info(f"Extracted customer record: {customer_record.get('customer_id')}")
+            return customer_record
             
-            # Parse registration_date separately to handle datetime
-            if 'registration_date' in df.columns:
-                df['registration_date'] = pd.to_datetime(
-                    df['registration_date'],
-                    errors='coerce',
-                    format=self.source_config.get('date_format', '%Y-%m-%d %H:%M:%S')
-                )
-            
-            logger.info(f"Successfully extracted {len(df)} customer records")
-            logger.info(f"Columns: {list(df.columns)}")
-            
-            return df
-            
-        except FileNotFoundError:
-            logger.error(f"Customer file not found: {file_path}")
-            raise
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON content: {e}")
+            raise ValueError(f"Invalid JSON format: {e}")
         except Exception as e:
-            logger.error(f"Error extracting customer data: {e}")
+            logger.error(f"Extraction error: {e}")
             raise
-    
-    def extract_addresses(self, file_path: Optional[str] = None) -> pd.DataFrame:
+            
+    def extract_address_data(self, flowfile_content: str) -> Dict[str, Any]:
         """
-        Extract customer address data from flat file.
+        Extract customer address data from flow file content.
         
         Args:
-            file_path: Path to address data file. If None, uses config.
+            flowfile_content: Raw content from NiFi flow file
             
         Returns:
-            DataFrame containing address data
+            Dictionary containing extracted address data
         """
-        if file_path is None:
-            file_path = self.source_config.get('addresses_file')
-        
-        if not file_path:
-            raise ValueError("Address file path not provided")
-        
-        logger.info(f"Extracting address data from {file_path}")
-        
         try:
-            dtype_mapping = {
-                'address_id': str,
-                'customer_id': str,
-                'address_type': str
+            if isinstance(flowfile_content, str):
+                data = json.loads(flowfile_content)
+            else:
+                data = flowfile_content
+                
+            address_record = {
+                'address_id': data.get('address_id', '').strip(),
+                'customer_id': data.get('customer_id', '').strip(),
+                'address_type': data.get('address_type', '').strip(),
+                'extraction_timestamp': datetime.utcnow().isoformat()
             }
             
-            df = pd.read_csv(
-                file_path,
-                dtype=dtype_mapping,
-                encoding=self.source_config.get('encoding', 'utf-8'),
-                na_values=self.source_config.get('na_values', ['', 'NULL', 'null', 'NA']),
-                keep_default_na=True
-            )
+            logger.info(f"Extracted address record: {address_record.get('address_id')}")
+            return address_record
             
-            logger.info(f"Successfully extracted {len(df)} address records")
-            
-            return df
-            
-        except FileNotFoundError:
-            logger.error(f"Address file not found: {file_path}")
-            raise
         except Exception as e:
-            logger.error(f"Error extracting address data: {e}")
+            logger.error(f"Address extraction error: {e}")
             raise
-    
-    def validate_extraction(self, df: pd.DataFrame, source_name: str) -> bool:
+            
+    def extract_batch(self, flowfiles: List[Any]) -> List[Dict[str, Any]]:
         """
-        Validate extracted data meets basic requirements.
+        Extract data from multiple flow files.
         
         Args:
-            df: DataFrame to validate
-            source_name: Name of source for logging
+            flowfiles: List of NiFi flow files
             
         Returns:
-            True if validation passes
+            List of extracted customer records
         """
-        logger.info(f"Validating {source_name} extraction")
+        extracted_records = []
         
-        if df.empty:
-            logger.warning(f"{source_name} extraction resulted in empty DataFrame")
-            return False
-        
-        # Check for required columns based on source
-        if source_name == 'customers':
-            required_cols = ['customer_id', 'first_name', 'last_name']
-        elif source_name == 'addresses':
-            required_cols = ['address_id', 'customer_id']
-        else:
-            required_cols = []
-        
-        missing_cols = set(required_cols) - set(df.columns)
-        if missing_cols:
-            logger.error(f"Missing required columns in {source_name}: {missing_cols}")
-            return False
-        
-        # Check for null customer_id (NOT NULL constraint)
-        if 'customer_id' in df.columns:
-            null_count = df['customer_id'].isna().sum()
-            if null_count > 0:
-                logger.error(f"Found {null_count} null customer_id values in {source_name}")
-                return False
-        
-        logger.info(f"{source_name} validation passed")
-        return True
+        for flowfile in flowfiles:
+            try:
+                content = flowfile.get('content', '')
+                record = self.extract_customer_data(content)
+                extracted_records.append(record)
+            except Exception as e:
+                logger.error(f"Failed to extract flowfile: {e}")
+                continue
+                
+        logger.info(f"Extracted {len(extracted_records)} records from {len(flowfiles)} flowfiles")
+        return extracted_records
