@@ -1,389 +1,292 @@
 """
-Transform module for customer master data.
-Handles data type conversion, null handling, and address standardization.
+Transform module for customer address data processing.
+Handles address type validation, primary flag processing, and customer ID lookup.
 """
-
 import logging
+from typing import Dict, List, Optional, Set
 import pandas as pd
-import re
-from typing import Dict, Any, Optional
-import yaml
+import numpy as np
+from datetime import datetime
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class CustomerDataTransformer:
-    """Transform customer master data with type conversion and standardization."""
+class AddressDataTransformer:
+    """Transforms customer address data with validation and enrichment."""
     
-    def __init__(self, config_path: str = "config.yaml"):
-        """Initialize transformer with configuration."""
-        self.config = self._load_config(config_path)
-        self.transform_config = self.config.get('transform', {})
-        
-    def _load_config(self, config_path: str) -> Dict[str, Any]:
-        """Load configuration from YAML file."""
-        try:
-            with open(config_path, 'r') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            logger.error(f"Failed to load config from {config_path}: {e}")
-            raise
+    # Valid address types based on business rules
+    VALID_ADDRESS_TYPES = {
+        'HOME', 'WORK', 'BILLING', 'SHIPPING', 'MAILING', 'OTHER'
+    }
     
-    def transform_customers(self, df: pd.DataFrame) -> pd.DataFrame:
+    # Default address type for invalid values
+    DEFAULT_ADDRESS_TYPE = 'OTHER'
+    
+    def __init__(self, config: Dict):
         """
-        Apply all transformations to customer data.
+        Initialize the transformer with configuration.
         
         Args:
-            df: Raw customer DataFrame
+            config: Configuration dictionary containing transformation rules
+        """
+        self.config = config
+        self.transform_config = config.get('transform', {})
+        self.valid_types = set(self.transform_config.get(
+            'valid_address_types', 
+            list(self.VALID_ADDRESS_TYPES)
+        ))
+        self.default_type = self.transform_config.get(
+            'default_address_type',
+            self.DEFAULT_ADDRESS_TYPE
+        )
+        
+    def validate_address_type(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Validate and standardize address types.
+        
+        Args:
+            df: DataFrame containing address records
             
         Returns:
-            Transformed DataFrame
+            DataFrame with validated address_type column
         """
-        logger.info(f"Starting transformation of {len(df)} customer records")
+        logger.info("Validating address types")
         
-        df_transformed = df.copy()
+        df = df.copy()
         
-        # Apply transformations in sequence
-        df_transformed = self._handle_null_values(df_transformed)
-        df_transformed = self._convert_data_types(df_transformed)
-        df_transformed = self._standardize_names(df_transformed)
-        df_transformed = self._standardize_email(df_transformed)
-        df_transformed = self._standardize_phone(df_transformed)
-        df_transformed = self._standardize_address(df_transformed)
-        df_transformed = self._standardize_state(df_transformed)
-        df_transformed = self._standardize_zip_code(df_transformed)
-        df_transformed = self._standardize_country(df_transformed)
-        df_transformed = self._standardize_status(df_transformed)
-        df_transformed = self._add_derived_fields(df_transformed)
+        # Standardize to uppercase
+        df['address_type'] = df['address_type'].str.upper().str.strip()
         
-        logger.info(f"Transformation complete. Output records: {len(df_transformed)}")
+        # Track invalid types for logging
+        invalid_mask = ~df['address_type'].isin(self.valid_types)
+        invalid_count = invalid_mask.sum()
         
-        return df_transformed
-    
-    def _handle_null_values(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Handle null values according to business rules."""
-        logger.info("Handling null values")
+        if invalid_count > 0:
+            logger.warning(
+                f"Found {invalid_count} invalid address types, "
+                f"setting to default: {self.default_type}"
+            )
+            invalid_types = df.loc[invalid_mask, 'address_type'].unique()
+            logger.debug(f"Invalid types found: {list(invalid_types)}")
+            
+        # Replace invalid types with default
+        df.loc[invalid_mask, 'address_type'] = self.default_type
         
-        null_handling = self.transform_config.get('null_handling', {})
+        # Handle null values
+        null_mask = df['address_type'].isna()
+        if null_mask.any():
+            logger.warning(
+                f"Found {null_mask.sum()} null address types, "
+                f"setting to default: {self.default_type}"
+            )
+            df.loc[null_mask, 'address_type'] = self.default_type
         
-        # Apply default values for specific fields
-        for field, default_value in null_handling.get('defaults', {}).items():
-            if field in df.columns:
-                df[field] = df[field].fillna(default_value)
-                logger.debug(f"Filled null values in {field} with '{default_value}'")
-        
-        # Trim whitespace that might be treated as null
-        string_columns = df.select_dtypes(include=['object']).columns
-        for col in string_columns:
-            df[col] = df[col].apply(lambda x: x.strip() if isinstance(x, str) else x)
-            # Replace empty strings with None
-            df[col] = df[col].replace('', None)
-        
+        logger.info("Address type validation complete")
         return df
     
-    def _convert_data_types(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Convert data types according to target schema."""
-        logger.info("Converting data types")
+    def process_primary_flag(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Process and validate primary address flags.
+        Ensures only one primary address per customer.
         
-        # Ensure customer_id is string (as per source definition)
-        if 'customer_id' in df.columns:
-            df['customer_id'] = df['customer_id'].astype(str)
+        Args:
+            df: DataFrame containing address records
+            
+        Returns:
+            DataFrame with validated is_primary flag
+        """
+        logger.info("Processing primary address flags")
         
-        # Ensure registration_date is datetime
-        if 'registration_date' in df.columns:
-            df['registration_date'] = pd.to_datetime(df['registration_date'], errors='coerce')
+        df = df.copy()
         
-        # Ensure string fields are proper strings
-        string_fields = [
-            'first_name', 'last_name', 'email', 'phone',
-            'address_line1', 'address_line2', 'city', 'state',
-            'zip_code', 'country', 'status'
-        ]
+        # Standardize primary flag to boolean
+        df['is_primary'] = df['is_primary'].astype(str).str.upper().str.strip()
+        df['is_primary_flag'] = df['is_primary'].isin(['Y', 'YES', 'TRUE', '1', 'T'])
         
-        for field in string_fields:
-            if field in df.columns:
-                df[field] = df[field].astype(str).replace('nan', None)
+        # Check for multiple primary addresses per customer
+        primary_counts = df[df['is_primary_flag']].groupby('customer_id').size()
+        multiple_primary = primary_counts[primary_counts > 1]
         
-        return df
-    
-    def _standardize_names(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Standardize first and last names."""
-        logger.info("Standardizing names")
-        
-        name_config = self.transform_config.get('name_standardization', {})
-        
-        for name_field in ['first_name', 'last_name']:
-            if name_field in df.columns:
-                # Title case
-                if name_config.get('title_case', True):
-                    df[name_field] = df[name_field].apply(
-                        lambda x: x.title() if isinstance(x, str) and x else x
-                    )
+        if len(multiple_primary) > 0:
+            logger.warning(
+                f"Found {len(multiple_primary)} customers with multiple primary addresses"
+            )
+            
+            # Keep only the most recent primary address per customer
+            for customer_id in multiple_primary.index:
+                customer_mask = df['customer_id'] == customer_id
+                primary_mask = customer_mask & df['is_primary_flag']
                 
-                # Remove extra whitespace
-                df[name_field] = df[name_field].apply(
-                    lambda x: ' '.join(x.split()) if isinstance(x, str) and x else x
-                )
+                # Sort by modified_date (most recent first) or created_date
+                date_col = 'modified_date' if 'modified_date' in df.columns else 'created_date'
+                if date_col in df.columns:
+                    customer_primaries = df[primary_mask].sort_values(
+                        date_col, 
+                        ascending=False
+                    )
+                    # Keep first (most recent), reset others
+                    indices_to_reset = customer_primaries.index[1:]
+                    df.loc[indices_to_reset, 'is_primary_flag'] = False
+                    logger.debug(
+                        f"Customer {customer_id}: kept most recent primary, "
+                        f"reset {len(indices_to_reset)} others"
+                    )
         
+        # Ensure each customer has at least one primary address
+        customers_without_primary = df.groupby('customer_id')['is_primary_flag'].any()
+        customers_without_primary = customers_without_primary[~customers_without_primary].index
+        
+        if len(customers_without_primary) > 0:
+            logger.warning(
+                f"Found {len(customers_without_primary)} customers without primary address"
+            )
+            
+            for customer_id in customers_without_primary:
+                customer_mask = df['customer_id'] == customer_id
+                # Set first address as primary
+                first_idx = df[customer_mask].index[0]
+                df.loc[first_idx, 'is_primary_flag'] = True
+                logger.debug(f"Set first address as primary for customer {customer_id}")
+        
+        logger.info("Primary flag processing complete")
         return df
     
-    def _standardize_email(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Standardize email addresses."""
-        logger.info("Standardizing email addresses")
+    def lookup_customer_data(
+        self, 
+        addresses_df: pd.DataFrame, 
+        customers_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Enrich address data with customer information.
         
-        if 'email' not in df.columns:
-            return df
+        Args:
+            addresses_df: DataFrame containing address records
+            customers_df: DataFrame containing customer records
+            
+        Returns:
+            DataFrame with enriched customer information
+        """
+        logger.info("Performing customer data lookup")
         
-        # Convert to lowercase
-        df['email'] = df['email'].apply(
-            lambda x: x.lower().strip() if isinstance(x, str) and x else x
+        # Select relevant customer columns for enrichment
+        customer_cols = ['customer_id', 'first_name', 'last_name', 'email', 'status']
+        available_cols = [col for col in customer_cols if col in customers_df.columns]
+        
+        # Perform left join to preserve all addresses
+        enriched_df = addresses_df.merge(
+            customers_df[available_cols],
+            on='customer_id',
+            how='left',
+            suffixes=('', '_customer')
         )
         
-        # Validate email format
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        df['email_valid'] = df['email'].apply(
-            lambda x: bool(re.match(email_pattern, x)) if isinstance(x, str) and x else False
-        )
+        # Check for addresses without matching customers
+        missing_customers = enriched_df['first_name'].isna()
+        if missing_customers.any():
+            missing_count = missing_customers.sum()
+            logger.warning(
+                f"Found {missing_count} addresses without matching customer records"
+            )
+            missing_ids = enriched_df.loc[missing_customers, 'customer_id'].unique()
+            logger.debug(f"Customer IDs not found: {list(missing_ids)[:10]}")
         
-        # Set invalid emails to None if configured
-        if self.transform_config.get('email_standardization', {}).get('null_invalid', False):
-            df.loc[~df['email_valid'], 'email'] = None
-        
-        return df
+        logger.info(f"Customer lookup complete: {len(enriched_df)} records enriched")
+        return enriched_df
     
-    def _standardize_phone(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Standardize phone numbers."""
-        logger.info("Standardizing phone numbers")
+    def standardize_address_fields(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Standardize address field formats and values.
         
-        if 'phone' not in df.columns:
-            return df
-        
-        phone_config = self.transform_config.get('phone_standardization', {})
-        
-        def clean_phone(phone):
-            if not isinstance(phone, str) or not phone:
-                return None
+        Args:
+            df: DataFrame containing address records
             
-            # Remove all non-digit characters
-            digits = re.sub(r'\D', '', phone)
-            
-            # Handle different formats
-            if len(digits) == 10:
-                # US format: (XXX) XXX-XXXX
-                return f"({digits[:3]}) {digits[3:6]}-{digits[6:]}"
-            elif len(digits) == 11 and digits[0] == '1':
-                # US format with country code
-                return f"+1 ({digits[1:4]}) {digits[4:7]}-{digits[7:]}"
-            else:
-                # Return original if can't standardize
-                return phone
+        Returns:
+            DataFrame with standardized address fields
+        """
+        logger.info("Standardizing address fields")
         
-        if phone_config.get('standardize_format', True):
-            df['phone'] = df['phone'].apply(clean_phone)
+        df = df.copy()
         
-        return df
-    
-    def _standardize_address(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Standardize address fields."""
-        logger.info("Standardizing addresses")
+        # Standardize state codes to uppercase
+        if 'state' in df.columns:
+            df['state'] = df['state'].str.upper().str.strip()
         
-        address_config = self.transform_config.get('address_standardization', {})
+        # Standardize country codes to uppercase
+        if 'country' in df.columns:
+            df['country'] = df['country'].str.upper().str.strip()
+            # Default to US if null
+            df['country'] = df['country'].fillna('US')
         
+        # Clean zip codes (remove spaces, standardize format)
+        if 'zip_code' in df.columns:
+            df['zip_code'] = df['zip_code'].astype(str).str.strip()
+            df['zip_code'] = df['zip_code'].replace('nan', '')
+        
+        # Trim and clean address lines
         address_fields = ['address_line1', 'address_line2', 'city']
-        
         for field in address_fields:
             if field in df.columns:
-                # Title case for addresses
-                if address_config.get('title_case', True):
-                    df[field] = df[field].apply(
-                        lambda x: x.title() if isinstance(x, str) and x else x
-                    )
-                
-                # Standardize common abbreviations
-                if address_config.get('standardize_abbreviations', True):
-                    df[field] = df[field].apply(self._standardize_address_abbreviations)
+                df[field] = df[field].str.strip()
+                df[field] = df[field].replace('', None)
         
+        logger.info("Address field standardization complete")
         return df
     
-    def _standardize_address_abbreviations(self, address: str) -> str:
-        """Standardize common address abbreviations."""
-        if not isinstance(address, str) or not address:
-            return address
+    def add_audit_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Add audit columns for tracking data lineage.
         
-        abbreviations = {
-            r'\bSt\.?\b': 'Street',
-            r'\bAve\.?\b': 'Avenue',
-            r'\bRd\.?\b': 'Road',
-            r'\bBlvd\.?\b': 'Boulevard',
-            r'\bDr\.?\b': 'Drive',
-            r'\bLn\.?\b': 'Lane',
-            r'\bCt\.?\b': 'Court',
-            r'\bPl\.?\b': 'Place',
-            r'\bApt\.?\b': 'Apartment',
-            r'\bSte\.?\b': 'Suite',
-        }
-        
-        result = address
-        for pattern, replacement in abbreviations.items():
-            result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
-        
-        return result
-    
-    def _standardize_state(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Standardize state codes."""
-        logger.info("Standardizing state codes")
-        
-        if 'state' not in df.columns:
-            return df
-        
-        # Convert to uppercase
-        df['state'] = df['state'].apply(
-            lambda x: x.upper().strip() if isinstance(x, str) and x else x
-        )
-        
-        # Validate state codes (US states)
-        valid_states = {
-            'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-            'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-            'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-            'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-            'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-            'DC', 'PR', 'VI', 'GU', 'AS', 'MP'
-        }
-        
-        df['state_valid'] = df['state'].apply(
-            lambda x: x in valid_states if isinstance(x, str) and x else False
-        )
-        
-        return df
-    
-    def _standardize_zip_code(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Standardize ZIP codes."""
-        logger.info("Standardizing ZIP codes")
-        
-        if 'zip_code' not in df.columns:
-            return df
-        
-        def clean_zip(zip_code):
-            if not isinstance(zip_code, str) or not zip_code:
-                return None
+        Args:
+            df: DataFrame to add audit columns to
             
-            # Remove all non-digit/hyphen characters
-            cleaned = re.sub(r'[^\d-]', '', zip_code)
+        Returns:
+            DataFrame with audit columns added
+        """
+        logger.info("Adding audit columns")
+        
+        df = df.copy()
+        current_timestamp = datetime.now()
+        
+        df['etl_processed_date'] = current_timestamp
+        df['etl_source_system'] = 'INFORMATICA_MIGRATION'
+        df['etl_batch_id'] = self.config.get('batch_id', 'BATCH_001')
+        
+        logger.info("Audit columns added")
+        return df
+    
+    def transform(
+        self, 
+        addresses_df: pd.DataFrame, 
+        customers_df: pd.DataFrame
+    ) -> pd.DataFrame:
+        """
+        Execute complete transformation pipeline.
+        
+        Args:
+            addresses_df: DataFrame containing address records
+            customers_df: DataFrame containing customer records
             
-            # Handle 5-digit and 9-digit formats
-            digits = re.sub(r'\D', '', cleaned)
-            
-            if len(digits) == 5:
-                return digits
-            elif len(digits) == 9:
-                return f"{digits[:5]}-{digits[5:]}"
-            else:
-                return zip_code
+        Returns:
+            Fully transformed DataFrame ready for loading
+        """
+        logger.info("Starting address data transformation pipeline")
         
-        df['zip_code'] = df['zip_code'].apply(clean_zip)
+        # Step 1: Validate address types
+        df = self.validate_address_type(addresses_df)
         
-        return df
-    
-    def _standardize_country(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Standardize country codes."""
-        logger.info("Standardizing country codes")
+        # Step 2: Process primary flags
+        df = self.process_primary_flag(df)
         
-        if 'country' not in df.columns:
-            return df
+        # Step 3: Lookup customer data
+        df = self.lookup_customer_data(df, customers_df)
         
-        # Convert to uppercase
-        df['country'] = df['country'].apply(
-            lambda x: x.upper().strip() if isinstance(x, str) and x else x
+        # Step 4: Standardize address fields
+        df = self.standardize_address_fields(df)
+        
+        # Step 5: Add audit columns
+        df = self.add_audit_columns(df)
+        
+        logger.info(
+            f"Transformation pipeline complete: {len(df)} records transformed"
         )
-        
-        # Default to US if null
-        default_country = self.transform_config.get('country_default', 'US')
-        df['country'] = df['country'].fillna(default_country)
-        
         return df
-    
-    def _standardize_status(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Standardize customer status."""
-        logger.info("Standardizing customer status")
-        
-        if 'status' not in df.columns:
-            return df
-        
-        # Convert to uppercase
-        df['status'] = df['status'].apply(
-            lambda x: x.upper().strip() if isinstance(x, str) and x else x
-        )
-        
-        # Map to standard values
-        status_mapping = self.transform_config.get('status_mapping', {
-            'ACTIVE': 'ACTIVE',
-            'INACTIVE': 'INACTIVE',
-            'SUSPENDED': 'SUSPENDED',
-            'PENDING': 'PENDING'
-        })
-        
-        df['status'] = df['status'].map(status_mapping).fillna('UNKNOWN')
-        
-        return df
-    
-    def _add_derived_fields(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Add derived fields for analytics."""
-        logger.info("Adding derived fields")
-        
-        # Full name
-        if 'first_name' in df.columns and 'last_name' in df.columns:
-            df['full_name'] = df.apply(
-                lambda row: f"{row['first_name']} {row['last_name']}"
-                if pd.notna(row['first_name']) and pd.notna(row['last_name'])
-                else None,
-                axis=1
-            )
-        
-        # Full address
-        address_parts = ['address_line1', 'address_line2', 'city', 'state', 'zip_code']
-        if all(col in df.columns for col in address_parts):
-            df['full_address'] = df.apply(
-                lambda row: ', '.join(filter(None, [
-                    str(row['address_line1']) if pd.notna(row['address_line1']) else None,
-                    str(row['address_line2']) if pd.notna(row['address_line2']) else None,
-                    str(row['city']) if pd.notna(row['city']) else None,
-                    f"{row['state']} {row['zip_code']}" if pd.notna(row['state']) and pd.notna(row['zip_code']) else None
-                ])),
-                axis=1
-            )
-        
-        # Days since registration
-        if 'registration_date' in df.columns:
-            df['days_since_registration'] = (
-                pd.Timestamp.now() - df['registration_date']
-            ).dt.days
-        
-        # Data quality score
-        df['data_quality_score'] = self._calculate_data_quality_score(df)
-        
-        return df
-    
-    def _calculate_data_quality_score(self, df: pd.DataFrame) -> pd.Series:
-        """Calculate data quality score for each record."""
-        score = pd.Series(0, index=df.index)
-        
-        # Points for non-null critical fields
-        critical_fields = ['first_name', 'last_name', 'email', 'phone']
-        for field in critical_fields:
-            if field in df.columns:
-                score += df[field].notna().astype(int) * 25
-        
-        # Bonus points for valid email
-        if 'email_valid' in df.columns:
-            score += df['email_valid'].astype(int) * 10
-        
-        # Bonus points for valid state
-        if 'state_valid' in df.columns:
-            score += df['state_valid'].astype(int) * 10
-        
-        # Cap at 100
-        score = score.clip(upper=100)
-        
-        return score
