@@ -1,169 +1,232 @@
 """
-Load module for customer address data to target systems.
-Handles writing transformed data to target destinations.
+Sales Order Processing - Load Module
+Loads transformed data to target destinations
 """
 import logging
-from typing import Dict, Optional
-import pandas as pd
-from pathlib import Path
-from datetime import datetime
+from typing import Dict, Any, Optional
+from pyspark.sql import SparkSession, DataFrame
+from pyspark.sql.utils import AnalysisException
 
 logger = logging.getLogger(__name__)
 
 
-class AddressDataLoader:
-    """Loads transformed address data to target systems."""
+class SalesOrderLoader:
+    """Handles loading of transformed sales order data"""
     
-    def __init__(self, config: Dict):
+    def __init__(self, spark: SparkSession, config: Dict[str, Any]):
         """
-        Initialize the loader with configuration.
+        Initialize the loader
         
         Args:
-            config: Configuration dictionary containing target settings
+            spark: Active SparkSession
+            config: Configuration dictionary
         """
+        self.spark = spark
         self.config = config
         self.target_config = config.get('target', {})
         
-    def load_to_csv(
-        self, 
-        df: pd.DataFrame, 
-        output_path: Optional[str] = None
-    ) -> str:
+    def load_processed_orders(self, df: DataFrame) -> bool:
         """
-        Load data to CSV file.
+        Load processed orders to target
         
         Args:
-            df: DataFrame to write
-            output_path: Optional output path, uses config if not provided
+            df: Processed orders DataFrame
             
         Returns:
-            Path to written file
+            True if successful, False otherwise
         """
-        if output_path is None:
-            output_path = self.target_config.get('output_file')
-            
-        if not output_path:
-            raise ValueError("output_file not configured")
-        
-        logger.info(f"Loading {len(df)} records to CSV: {output_path}")
-        
-        # Ensure output directory exists
-        output_file = Path(output_path)
-        output_file.parent.mkdir(parents=True, exist_ok=True)
-        
         try:
-            df.to_csv(output_path, index=False)
-            logger.info(f"Successfully loaded data to {output_path}")
-            return output_path
+            target_path = self.target_config.get('processed_orders_path')
+            target_format = self.target_config.get('format', 'delta')
+            write_mode = self.target_config.get('write_mode', 'append')
+            partition_cols = self.target_config.get('partition_columns', ['processed_date'])
             
+            logger.info(f"Loading {df.count()} processed orders to {target_path}")
+            
+            writer = df.write.format(target_format).mode(write_mode)
+            
+            if partition_cols:
+                writer = writer.partitionBy(*partition_cols)
+            
+            if target_format == 'delta':
+                writer = writer.option("mergeSchema", "true")
+                writer = writer.option("overwriteSchema", "false")
+            
+            writer.save(target_path)
+            
+            logger.info("Processed orders loaded successfully")
+            return True
+            
+        except AnalysisException as e:
+            logger.error(f"Failed to load processed orders: {str(e)}")
+            return False
         except Exception as e:
-            logger.error(f"Error loading data to CSV: {str(e)}")
-            raise
+            logger.error(f"Unexpected error during load: {str(e)}")
+            return False
     
-    def load_to_database(self, df: pd.DataFrame) -> int:
+    def load_invalid_orders(self, df: DataFrame) -> bool:
         """
-        Load data to database table.
+        Load invalid orders to error table
         
         Args:
-            df: DataFrame to write
+            df: Invalid orders DataFrame
             
         Returns:
-            Number of records loaded
+            True if successful, False otherwise
         """
-        db_config = self.target_config.get('database', {})
-        table_name = db_config.get('table_name')
-        
-        if not table_name:
-            raise ValueError("database.table_name not configured")
-        
-        logger.info(f"Loading {len(df)} records to database table: {table_name}")
-        
         try:
-            # This is a placeholder for actual database connection
-            # In production, use SQLAlchemy or similar
-            connection_string = db_config.get('connection_string')
-            if not connection_string:
-                raise ValueError("database.connection_string not configured")
+            invalid_df = df.filter(df.is_valid_order == False)
             
-            # Example using SQLAlchemy (would need actual implementation)
-            # from sqlalchemy import create_engine
-            # engine = create_engine(connection_string)
-            # df.to_sql(table_name, engine, if_exists='append', index=False)
+            if invalid_df.count() == 0:
+                logger.info("No invalid orders to load")
+                return True
             
-            logger.info(f"Successfully loaded {len(df)} records to {table_name}")
-            return len(df)
+            target_path = self.target_config.get('invalid_orders_path')
+            target_format = self.target_config.get('format', 'delta')
+            
+            logger.info(f"Loading {invalid_df.count()} invalid orders to {target_path}")
+            
+            invalid_df.write.format(target_format).mode('append').save(target_path)
+            
+            logger.info("Invalid orders loaded successfully")
+            return True
             
         except Exception as e:
-            logger.error(f"Error loading data to database: {str(e)}")
-            raise
+            logger.error(f"Failed to load invalid orders: {str(e)}")
+            return False
     
-    def load_error_records(
-        self, 
-        df: pd.DataFrame, 
-        error_type: str
-    ) -> str:
+    def load_order_metrics(self, df: DataFrame) -> bool:
         """
-        Load error records to separate error file.
+        Load aggregated order metrics to analytics table
         
         Args:
-            df: DataFrame containing error records
-            error_type: Type of error for file naming
+            df: Orders DataFrame with metrics
             
         Returns:
-            Path to error file
+            True if successful, False otherwise
         """
-        error_dir = self.target_config.get('error_directory', 'data/errors')
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        error_file = f"{error_dir}/errors_{error_type}_{timestamp}.csv"
-        
-        logger.warning(f"Loading {len(df)} error records to {error_file}")
-        
-        # Ensure error directory exists
-        Path(error_dir).mkdir(parents=True, exist_ok=True)
-        
         try:
-            df.to_csv(error_file, index=False)
-            logger.info(f"Error records written to {error_file}")
-            return error_file
+            from pyspark.sql import functions as F
+            
+            # Aggregate metrics by date and region
+            metrics_df = df.groupBy(
+                "processed_date",
+                "region_code",
+                "region_name",
+                "status"
+            ).agg(
+                F.count("*").alias("order_count"),
+                F.sum("net_amount").alias("total_revenue"),
+                F.avg("net_amount").alias("avg_order_value"),
+                F.sum("total_discount").alias("total_discounts"),
+                F.avg("discount_percentage").alias("avg_discount_pct"),
+                F.sum("line_item_count").alias("total_items"),
+                F.countDistinct("customer_id").alias("unique_customers"),
+                F.sum(F.when(F.col("is_new_customer"), 1).otherwise(0)).alias("new_customer_orders"),
+                F.sum(F.when(F.col("is_rush_order"), 1).otherwise(0)).alias("rush_orders"),
+                F.sum(F.when(F.col("requires_review"), 1).otherwise(0)).alias("orders_requiring_review")
+            )
+            
+            target_path = self.target_config.get('metrics_path')
+            target_format = self.target_config.get('format', 'delta')
+            
+            logger.info(f"Loading order metrics to {target_path}")
+            
+            metrics_df.write.format(target_format).mode('append').save(target_path)
+            
+            logger.info("Order metrics loaded successfully")
+            return True
             
         except Exception as e:
-            logger.error(f"Error writing error records: {str(e)}")
-            raise
+            logger.error(f"Failed to load order metrics: {str(e)}")
+            return False
     
-    def load(self, df: pd.DataFrame) -> Dict[str, any]:
+    def create_or_update_table(self, df: DataFrame, table_name: str, 
+                               database: Optional[str] = None) -> bool:
         """
-        Execute complete load pipeline.
+        Create or update a Delta table
         
         Args:
-            df: DataFrame to load
+            df: DataFrame to save
+            table_name: Name of the table
+            database: Optional database name
             
         Returns:
-            Dictionary with load statistics
+            True if successful, False otherwise
         """
-        logger.info("Starting data load pipeline")
-        
-        results = {
-            'total_records': len(df),
-            'loaded_records': 0,
-            'error_records': 0,
-            'output_files': []
-        }
-        
         try:
-            # Load to primary target (CSV)
-            if self.target_config.get('output_file'):
-                output_path = self.load_to_csv(df)
-                results['output_files'].append(output_path)
-                results['loaded_records'] = len(df)
+            full_table_name = f"{database}.{table_name}" if database else table_name
             
-            # Optionally load to database
-            if self.target_config.get('database', {}).get('enabled', False):
-                loaded_count = self.load_to_database(df)
-                results['loaded_records'] = loaded_count
+            logger.info(f"Creating/updating table {full_table_name}")
             
-            logger.info(f"Load pipeline complete: {results}")
-            return results
+            df.write.format("delta").mode("overwrite").saveAsTable(full_table_name)
+            
+            logger.info(f"Table {full_table_name} created/updated successfully")
+            return True
             
         except Exception as e:
-            logger.error(f"Error in load pipeline: {str(e)}")
-            raise
+            logger.error(f"Failed to create/update table {full_table_name}: {str(e)}")
+            return False
+    
+    def optimize_target_tables(self) -> bool:
+        """
+        Optimize target Delta tables
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            tables_to_optimize = self.target_config.get('tables_to_optimize', [])
+            
+            for table_info in tables_to_optimize:
+                table_name = table_info.get('name')
+                z_order_cols = table_info.get('z_order_columns', [])
+                
+                logger.info(f"Optimizing table {table_name}")
+                
+                self.spark.sql(f"OPTIMIZE {table_name}")
+                
+                if z_order_cols:
+                    z_order_clause = ", ".join(z_order_cols)
+                    self.spark.sql(f"OPTIMIZE {table_name} ZORDER BY ({z_order_clause})")
+                    logger.info(f"Applied Z-ORDER on {z_order_clause}")
+                
+                logger.info(f"Table {table_name} optimized successfully")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to optimize tables: {str(e)}")
+            return False
+    
+    def generate_load_summary(self, df: DataFrame) -> Dict[str, Any]:
+        """
+        Generate summary statistics for loaded data
+        
+        Args:
+            df: Loaded DataFrame
+            
+        Returns:
+            Dictionary with summary statistics
+        """
+        try:
+            from pyspark.sql import functions as F
+            
+            summary = df.agg(
+                F.count("*").alias("total_records"),
+                F.sum(F.when(F.col("is_valid_order"), 1).otherwise(0)).alias("valid_orders"),
+                F.sum(F.when(~F.col("is_valid_order"), 1).otherwise(0)).alias("invalid_orders"),
+                F.sum("net_amount").alias("total_revenue"),
+                F.avg("net_amount").alias("avg_order_value"),
+                F.min("order_date").alias("earliest_order"),
+                F.max("order_date").alias("latest_order"),
+                F.countDistinct("customer_id").alias("unique_customers"),
+                F.countDistinct("region_code").alias("unique_regions")
+            ).collect()[0].asDict()
+            
+            logger.info(f"Load summary: {summary}")
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Failed to generate load summary: {str(e)}")
+            return {}
