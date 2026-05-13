@@ -1,233 +1,169 @@
 """
-Load module for customer master data.
+Load module for customer address data to target systems.
 Handles writing transformed data to target destinations.
 """
-
 import logging
+from typing import Dict, Optional
 import pandas as pd
 from pathlib import Path
-from typing import Dict, Any, Optional
-import yaml
-import json
+from datetime import datetime
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class CustomerDataLoader:
-    """Load transformed customer data to target destinations."""
+class AddressDataLoader:
+    """Loads transformed address data to target systems."""
     
-    def __init__(self, config_path: str = "config.yaml"):
-        """Initialize loader with configuration."""
-        self.config = self._load_config(config_path)
-        self.target_config = self.config.get('target', {})
-        
-    def _load_config(self, config_path: str) -> Dict[str, Any]:
-        """Load configuration from YAML file."""
-        try:
-            with open(config_path, 'r') as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            logger.error(f"Failed to load config from {config_path}: {e}")
-            raise
-    
-    def load_customers(self, df: pd.DataFrame, output_path: Optional[str] = None) -> bool:
+    def __init__(self, config: Dict):
         """
-        Load customer data to target destination.
+        Initialize the loader with configuration.
         
         Args:
-            df: Transformed customer DataFrame
-            output_path: Path to output file. If None, uses config.
+            config: Configuration dictionary containing target settings
+        """
+        self.config = config
+        self.target_config = config.get('target', {})
+        
+    def load_to_csv(
+        self, 
+        df: pd.DataFrame, 
+        output_path: Optional[str] = None
+    ) -> str:
+        """
+        Load data to CSV file.
+        
+        Args:
+            df: DataFrame to write
+            output_path: Optional output path, uses config if not provided
             
         Returns:
-            True if load successful
+            Path to written file
         """
         if output_path is None:
-            output_path = self.target_config.get('customers_output')
-        
+            output_path = self.target_config.get('output_file')
+            
         if not output_path:
-            raise ValueError("Output path not provided")
+            raise ValueError("output_file not configured")
         
-        logger.info(f"Loading {len(df)} customer records to {output_path}")
+        logger.info(f"Loading {len(df)} records to CSV: {output_path}")
+        
+        # Ensure output directory exists
+        output_file = Path(output_path)
+        output_file.parent.mkdir(parents=True, exist_ok=True)
         
         try:
-            # Create output directory if it doesn't exist
-            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-            
-            # Determine output format
-            output_format = self.target_config.get('format', 'csv').lower()
-            
-            if output_format == 'csv':
-                self._load_to_csv(df, output_path)
-            elif output_format == 'parquet':
-                self._load_to_parquet(df, output_path)
-            elif output_format == 'json':
-                self._load_to_json(df, output_path)
-            else:
-                raise ValueError(f"Unsupported output format: {output_format}")
-            
-            logger.info(f"Successfully loaded customer data to {output_path}")
-            return True
+            df.to_csv(output_path, index=False)
+            logger.info(f"Successfully loaded data to {output_path}")
+            return output_path
             
         except Exception as e:
-            logger.error(f"Error loading customer data: {e}")
+            logger.error(f"Error loading data to CSV: {str(e)}")
             raise
     
-    def _load_to_csv(self, df: pd.DataFrame, output_path: str) -> None:
-        """Load data to CSV file."""
-        df.to_csv(
-            output_path,
-            index=False,
-            encoding=self.target_config.get('encoding', 'utf-8'),
-            date_format=self.target_config.get('date_format', '%Y-%m-%d %H:%M:%S')
-        )
-    
-    def _load_to_parquet(self, df: pd.DataFrame, output_path: str) -> None:
-        """Load data to Parquet file."""
-        df.to_parquet(
-            output_path,
-            index=False,
-            compression=self.target_config.get('compression', 'snappy')
-        )
-    
-    def _load_to_json(self, df: pd.DataFrame, output_path: str) -> None:
-        """Load data to JSON file."""
-        df.to_json(
-            output_path,
-            orient=self.target_config.get('json_orient', 'records'),
-            date_format='iso',
-            indent=2
-        )
-    
-    def load_data_quality_report(self, df: pd.DataFrame, report_path: Optional[str] = None) -> bool:
+    def load_to_database(self, df: pd.DataFrame) -> int:
         """
-        Generate and load data quality report.
+        Load data to database table.
         
         Args:
-            df: Transformed customer DataFrame
-            report_path: Path to report file. If None, uses config.
+            df: DataFrame to write
             
         Returns:
-            True if report generated successfully
+            Number of records loaded
         """
-        if report_path is None:
-            report_path = self.target_config.get('quality_report_output')
+        db_config = self.target_config.get('database', {})
+        table_name = db_config.get('table_name')
         
-        if not report_path:
-            logger.warning("Quality report path not configured, skipping report generation")
-            return False
+        if not table_name:
+            raise ValueError("database.table_name not configured")
         
-        logger.info(f"Generating data quality report to {report_path}")
+        logger.info(f"Loading {len(df)} records to database table: {table_name}")
         
         try:
-            # Create output directory if it doesn't exist
-            Path(report_path).parent.mkdir(parents=True, exist_ok=True)
+            # This is a placeholder for actual database connection
+            # In production, use SQLAlchemy or similar
+            connection_string = db_config.get('connection_string')
+            if not connection_string:
+                raise ValueError("database.connection_string not configured")
             
-            report = self._generate_quality_report(df)
+            # Example using SQLAlchemy (would need actual implementation)
+            # from sqlalchemy import create_engine
+            # engine = create_engine(connection_string)
+            # df.to_sql(table_name, engine, if_exists='append', index=False)
             
-            with open(report_path, 'w') as f:
-                json.dump(report, f, indent=2, default=str)
-            
-            logger.info(f"Successfully generated quality report at {report_path}")
-            return True
+            logger.info(f"Successfully loaded {len(df)} records to {table_name}")
+            return len(df)
             
         except Exception as e:
-            logger.error(f"Error generating quality report: {e}")
+            logger.error(f"Error loading data to database: {str(e)}")
             raise
     
-    def _generate_quality_report(self, df: pd.DataFrame) -> Dict[str, Any]:
-        """Generate data quality metrics report."""
-        report = {
-            'summary': {
-                'total_records': len(df),
-                'timestamp': pd.Timestamp.now().isoformat()
-            },
-            'completeness': {},
-            'validity': {},
-            'quality_scores': {}
-        }
-        
-        # Completeness metrics
-        for col in df.columns:
-            null_count = df[col].isna().sum()
-            null_pct = (null_count / len(df)) * 100 if len(df) > 0 else 0
-            report['completeness'][col] = {
-                'null_count': int(null_count),
-                'null_percentage': round(null_pct, 2),
-                'complete_count': int(len(df) - null_count)
-            }
-        
-        # Validity metrics
-        if 'email_valid' in df.columns:
-            valid_count = df['email_valid'].sum()
-            report['validity']['email'] = {
-                'valid_count': int(valid_count),
-                'valid_percentage': round((valid_count / len(df)) * 100, 2) if len(df) > 0 else 0
-            }
-        
-        if 'state_valid' in df.columns:
-            valid_count = df['state_valid'].sum()
-            report['validity']['state'] = {
-                'valid_count': int(valid_count),
-                'valid_percentage': round((valid_count / len(df)) * 100, 2) if len(df) > 0 else 0
-            }
-        
-        # Quality score distribution
-        if 'data_quality_score' in df.columns:
-            report['quality_scores'] = {
-                'mean': round(df['data_quality_score'].mean(), 2),
-                'median': round(df['data_quality_score'].median(), 2),
-                'min': round(df['data_quality_score'].min(), 2),
-                'max': round(df['data_quality_score'].max(), 2),
-                'std': round(df['data_quality_score'].std(), 2)
-            }
-        
-        # Status distribution
-        if 'status' in df.columns:
-            status_counts = df['status'].value_counts().to_dict()
-            report['status_distribution'] = {
-                str(k): int(v) for k, v in status_counts.items()
-            }
-        
-        return report
-    
-    def load_error_records(self, df: pd.DataFrame, error_path: Optional[str] = None) -> bool:
+    def load_error_records(
+        self, 
+        df: pd.DataFrame, 
+        error_type: str
+    ) -> str:
         """
-        Load records that failed validation to error file.
+        Load error records to separate error file.
         
         Args:
             df: DataFrame containing error records
-            error_path: Path to error file. If None, uses config.
+            error_type: Type of error for file naming
             
         Returns:
-            True if errors loaded successfully
+            Path to error file
         """
-        if df.empty:
-            logger.info("No error records to load")
-            return True
+        error_dir = self.target_config.get('error_directory', 'data/errors')
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        error_file = f"{error_dir}/errors_{error_type}_{timestamp}.csv"
         
-        if error_path is None:
-            error_path = self.target_config.get('error_output')
+        logger.warning(f"Loading {len(df)} error records to {error_file}")
         
-        if not error_path:
-            logger.warning("Error output path not configured, skipping error file generation")
-            return False
-        
-        logger.info(f"Loading {len(df)} error records to {error_path}")
+        # Ensure error directory exists
+        Path(error_dir).mkdir(parents=True, exist_ok=True)
         
         try:
-            # Create output directory if it doesn't exist
-            Path(error_path).parent.mkdir(parents=True, exist_ok=True)
-            
-            df.to_csv(
-                error_path,
-                index=False,
-                encoding=self.target_config.get('encoding', 'utf-8')
-            )
-            
-            logger.info(f"Successfully loaded error records to {error_path}")
-            return True
+            df.to_csv(error_file, index=False)
+            logger.info(f"Error records written to {error_file}")
+            return error_file
             
         except Exception as e:
-            logger.error(f"Error loading error records: {e}")
+            logger.error(f"Error writing error records: {str(e)}")
+            raise
+    
+    def load(self, df: pd.DataFrame) -> Dict[str, any]:
+        """
+        Execute complete load pipeline.
+        
+        Args:
+            df: DataFrame to load
+            
+        Returns:
+            Dictionary with load statistics
+        """
+        logger.info("Starting data load pipeline")
+        
+        results = {
+            'total_records': len(df),
+            'loaded_records': 0,
+            'error_records': 0,
+            'output_files': []
+        }
+        
+        try:
+            # Load to primary target (CSV)
+            if self.target_config.get('output_file'):
+                output_path = self.load_to_csv(df)
+                results['output_files'].append(output_path)
+                results['loaded_records'] = len(df)
+            
+            # Optionally load to database
+            if self.target_config.get('database', {}).get('enabled', False):
+                loaded_count = self.load_to_database(df)
+                results['loaded_records'] = loaded_count
+            
+            logger.info(f"Load pipeline complete: {results}")
+            return results
+            
+        except Exception as e:
+            logger.error(f"Error in load pipeline: {str(e)}")
             raise
