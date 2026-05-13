@@ -1,0 +1,132 @@
+# Customer Address Validation Configuration
+nifi:
+  host: localhost
+  port: 8443
+  username: admin
+  password: ${NIFI_PASSWORD}
+  secure: true
+  verify_ssl: false
+
+process_group:
+  name: "Customer Address Validation"
+  description: "Address validation, deduplication, and referential integrity checks"
+
+sources:
+  customers:
+    path: "/data/input/customers"
+    format: "csv"
+    delimiter: ","
+    schema:
+      - customer_id: string
+      - first_name: string
+      - last_name: string
+      - email: string
+      - phone: string
+      - address_line1: string
+      - address_line2: string
+      - city: string
+      - state: string
+      - zip_code: string
+      - country: string
+      - registration_date: timestamp
+      - status: string
+  
+  addresses:
+    path: "/data/input/customer_addresses"
+    format: "csv"
+    delimiter: ","
+    schema:
+      - address_id: string
+      - customer_id: string
+      - address_type: string
+      - address_line1: string
+      - address_line2: string
+      - city: string
+      - state: string
+      - zip_code: string
+      - country: string
+      - is_primary: boolean
+      - created_date: timestamp
+      - updated_date: timestamp
+
+targets:
+  validated_addresses:
+    path: "/data/output/validated_addresses"
+    format: "csv"
+  
+  duplicate_addresses:
+    path: "/data/output/duplicate_addresses"
+    format: "csv"
+  
+  invalid_addresses:
+    path: "/data/output/invalid_addresses"
+    format: "csv"
+  
+  orphaned_addresses:
+    path: "/data/output/orphaned_addresses"
+    format: "csv"
+
+validation:
+  address_completeness:
+    required_fields:
+      - address_line1
+      - city
+      - state
+      - zip_code
+      - country
+    
+    zip_code_patterns:
+      US: "^\\d{5}(-\\d{4})?$"
+      CA: "^[A-Z]\\d[A-Z] \\d[A-Z]\\d$"
+      UK: "^[A-Z]{1,2}\\d[A-Z\\d]? \\d[A-Z]{2}$"
+    
+    state_codes:
+      US:
+        - AL, AK, AZ, AR, CA, CO, CT, DE, FL, GA
+        - HI, ID, IL, IN, IA, KS, KY, LA, ME, MD
+        - MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ
+        - NM, NY, NC, ND, OH, OK, OR, PA, RI, SC
+        - SD, TN, TX, UT, VT, VA, WA, WV, WI, WY
+    
+    country_codes:
+      - US, CA, UK, DE, FR, IT, ES, AU, NZ, JP
+  
+  deduplication:
+    match_threshold: 0.85
+    fuzzy_match_fields:
+      - address_line1
+      - city
+    exact_match_fields:
+      - zip_code
+      - country
+    normalization:
+      - remove_punctuation: true
+      - lowercase: true
+      - trim_whitespace: true
+      - standardize_abbreviations: true
+    
+    abbreviations:
+      street:
+        - ["Street", "St"]
+        - ["Avenue", "Ave"]
+        - ["Boulevard", "Blvd"]
+        - ["Drive", "Dr"]
+        - ["Road", "Rd"]
+        - ["Lane", "Ln"]
+        - ["Court", "Ct"]
+        - ["Place", "Pl"]
+      
+      unit:
+        - ["Apartment", "Apt"]
+        - ["Suite", "Ste"]
+        - ["Unit", "Unit"]
+        - ["Building", "Bldg"]
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "/var/log/nifi/address_validation.log"
+
+monitoring:
+  enable_metrics: true
+  metrics_port: 9092
